@@ -213,9 +213,13 @@ app.get('/free-promo', (req, res) => {
         const host = req.get('host');
         const destination = `${protocol}://${host}/claim-promo/${token}`;
 
+        // Build the ShrinkEarn URL
+        const shrinkEarnApi = '1cf32d7592e81bf1b8e134c0d0734e6f2cb4e2b6';
+        const finalUrl = `https://shrinkearn.com/st?api=${shrinkEarnApi}&url=${encodeURIComponent(destination)}`;
+
         // Read the HTML template and replace the placeholder
         let html = fs.readFileSync(path.join(__dirname, 'public', 'free-promo-template.html'), 'utf8');
-        html = html.replace('{{DESTINATION}}', destination);
+        html = html.replace('{{DESTINATION}}', finalUrl);
 
         res.send(html);
     } catch (error) {
