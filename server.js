@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 // ── Paths ──
 const CODES_FILE = path.join(__dirname, '..', 'generated_codes.json');
+const TOKENS_FILE = path.join(__dirname, '..', 'active_tokens.json');
 const TOOL_FILE = path.join(__dirname, '..', 'game_tool.py');
 
 // ── Plan Configuration ──
@@ -64,6 +65,35 @@ function generateCode(planType) {
     const rand = crypto.randomBytes(6).toString('hex').toUpperCase();
     return `TOOLIX-${prefix}-${rand}`;
 }
+
+// ── Helper: Load/Save Tokens ──
+function loadTokens() {
+    try {
+        if (fs.existsSync(TOKENS_FILE)) {
+            return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'));
+        }
+    } catch (e) { }
+    return {};
+}
+
+function saveTokens(tokens) {
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2), 'utf8');
+}
+
+// ── Helper: Clean Expired Tokens ──
+function cleanTokens() {
+    const tokens = loadTokens();
+    let changed = false;
+    const now = Date.now();
+    for (const [token, data] of Object.entries(tokens)) {
+        if (now > data.expiresAt) {
+            delete tokens[token];
+            changed = true;
+        }
+    }
+    if (changed) saveTokens(tokens);
+}
+setInterval(cleanTokens, 5 * 60 * 1000); // Clean every 5 mins
 
 // ── Route: Create Stripe Checkout Session ──
 app.post('/api/create-checkout', async (req, res) => {
@@ -164,6 +194,67 @@ app.post('/api/verify-payment', async (req, res) => {
     } catch (error) {
         console.error('Verification error:', error.message);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ── Route: Generate OTP Link for Free Promo ──
+app.get('/api/get-promo-link', (req, res) => {
+    try {
+        const token = crypto.randomBytes(16).toString('hex');
+        const tokens = loadTokens();
+
+        // Token valid for 10 minutes
+        tokens[token] = {
+            expiresAt: Date.now() + 10 * 60 * 1000
+        };
+        saveTokens(tokens);
+
+        res.json({ success: true, token });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to generate promo link' });
+    }
+});
+
+// ── Route: Claim Free 2-Hour Promo Code ──
+app.get('/claim-promo/:token', (req, res) => {
+    try {
+        const { token } = req.params;
+        const tokens = loadTokens();
+
+        // 1. Check if token exists and is active
+        if (!tokens[token] || Date.now() > tokens[token].expiresAt) {
+            return res.status(400).send(`
+                <html><head><title>Expired Link</title><style>body{background:#0a0a0f;color:#ff2d55;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center}</style></head>
+                <body><div><h1>❌ Invalid or Expired Link</h1><p>Please go back to the app and click "Watch Ad" again.</p></div></body></html>
+            `);
+        }
+
+        // 2. Token is valid -> DELETE IT IMMEDIATELY (single-use)
+        delete tokens[token];
+        saveTokens(tokens);
+
+        // 3. Generate a 2-hour code
+        const code = generateCode('FRE'); // TOOLIX-FRE-XXXXXX
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+        // 4. Save to generated_codes.json with a flag indicating it can only be used once
+        const codes = loadCodes();
+        codes.push({
+            code_hash: codeHash,
+            code: code,
+            plan: 'free_promo',
+            duration_hours: 2,
+            session_id: 'linkvertise_' + Date.now(),
+            created_at: new Date().toISOString(),
+            single_use: true // Flag for license manager
+        });
+        saveCodes(codes);
+
+        // 5. Redirect to success page to show the code
+        res.redirect(`/promo-success.html?code=${code}`);
+
+    } catch (error) {
+        res.status(500).send('Internal Server Error');
     }
 });
 

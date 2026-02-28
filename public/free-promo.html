@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolix — Free 2-Hour PRO Promo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Linkvertise Script -->
+    <script src="https://publisher.linkvertise.com/cdn/linkvertise.js"></script>
+    <script>linkvertise(3902890, { whitelist: [], blacklist: [""] });</script>
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .promo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .promo-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .watch-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+        }
+
+        .watch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 45, 85, 0.3);
+        }
+
+        .watch-btn:disabled {
+            background: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="promo-card">
+        <div class="promo-icon">🎁</div>
+        <h1><span class="highlight">2 Free Hours</span> of PRO!</h1>
+        <p>Watch a short sponsor ad to immediately receive a 2-hour premium activation code. The code will be displayed
+            automatically after you skip the ad.</p>
+
+        <button id="promoBtn" class="watch-btn" disabled>
+            <span class="spinner" id="spinner"
+                style="display:inline-block; animation: spin 1s linear infinite;">↻</span>
+            Loading Ad Link...
+        </button>
+
+        <!-- The actual hidden linkvertise target -->
+        <a id="hiddenAdLink" href="#" style="display:none;">Go To Ad</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const btn = document.getElementById('promoBtn');
+            const link = document.getElementById('hiddenAdLink');
+            const spinner = document.getElementById('spinner');
+
+            try {
+                // Fetch secure single-use token
+                const response = await fetch('/api/get-promo-link');
+                const data = await response.json();
+
+                if (data.success) {
+                    // Create the final destination URL
+                    const destination = `${window.location.origin}/claim-promo/${data.token}`;
+
+                    // Set the link href - Linkvertise script automatically hooks onto this
+                    link.href = destination;
+
+                    // Enable button
+                    btn.disabled = false;
+                    spinner.style.display = 'none';
+                    btn.innerHTML = '🎬 Watch Ad Now';
+
+                    // Route button click to the hidden link
+                    btn.addEventListener('click', () => {
+                        link.click();
+                    });
+                } else {
+                    btn.innerHTML = '❌ Error Loading Ad';
+                }
+            } catch (error) {
+                btn.innerHTML = '❌ Connection Error';
+            }
+        });
+    </script>
+</body>
+
+</html>

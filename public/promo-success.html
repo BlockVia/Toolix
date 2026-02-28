@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolix — Promo Success!</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            background: #05050a;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .success-card {
+            background: #0c0c14;
+            border: 1px solid #ff2d55;
+            border-radius: 20px;
+            padding: 48px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 0 50px rgba(255, 45, 85, 0.15);
+            animation: bounceIn 0.8s ease;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            color: #ff2d55;
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: #9090a0;
+            margin-bottom: 24px;
+        }
+
+        .code-box {
+            background: #05050a;
+            border: 2px dashed #ff2d55;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .code-label {
+            font-size: 12px;
+            color: #505068;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .code-value {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff2d55;
+            letter-spacing: 2px;
+        }
+
+        .copy-btn {
+            padding: 12px 24px;
+            background: #ff2d55;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #ff4d6f;
+            transform: translateY(-2px);
+        }
+
+        .warning {
+            margin-top: 24px;
+            font-size: 13px;
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="success-card">
+        <div class="icon">🎁</div>
+        <h1>Promo Unlocked!</h1>
+        <p>Thank you for supporting Toolix. Here is your free 2-Hour PRO activation code.</p>
+
+        <div class="code-box">
+            <div class="code-label">Your 2-Hour Code</div>
+            <div class="code-value" id="promoCode">—</div>
+        </div>
+
+        <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+
+        <div class="warning">
+            ⚠️ <strong>Important:</strong> This code is for <strong>single-use only</strong>. Once activated in the app,
+            it cannot be used again. Do not share it!
+        </div>
+    </div>
+
+    <script>
+        // Extract code from URL parameter
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+
+        if (code) {
+            document.getElementById('promoCode').textContent = code;
+        } else {
+            document.getElementById('promoCode').textContent = "ERROR";
+            document.getElementById('promoCode').style.color = "red";
+        }
+
+        function copyCode() {
+            if (code) {
+                navigator.clipboard.writeText(code).then(() => {
+                    const btn = document.querySelector('.copy-btn');
+                    btn.textContent = '✅ Copied!';
+                    setTimeout(() => { btn.textContent = '📋 Copy Code'; }, 2000);
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
