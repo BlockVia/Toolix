@@ -11,6 +11,8 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
 
     <style>
         * {
@@ -215,22 +217,15 @@
             border-color: #ff2d55;
         }
 
-        .ad-slot .ad-icon {
-            font-size: 28px;
-            opacity: 0.5;
+        /* Video player fills its container */
+        .ad-video video,
+        .ad-video .video-js {
+            width: 100% !important;
+            height: 100% !important;
         }
 
-        .ad-slot .ad-type {
-            font-size: 12px;
-            font-weight: 600;
-            opacity: 0.7;
-        }
-
-        .ad-slot .ad-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.3;
+        .ad-video .vjs-poster {
+            background-color: #0c0c14;
         }
 
         /* ── Responsive ── */
@@ -273,33 +268,49 @@
     <!-- ── Ads Grid: fills remaining viewport ── -->
     <div class="ads-grid">
 
-        <!-- Left Column: iframe + banner -->
+        <!-- Left Column: iframe (250x250) + banner (300x100) -->
         <div class="ads-left">
-            <!-- Iframe Ad -->
+            <!-- Adcash 250x250 Banner -->
             <div class="ad-slot ad-iframe">
-                <div class="ad-icon">🌐</div>
-                <div class="ad-type">Iframe Ad</div>
-                <div class="ad-label">Ad Space</div>
+                <script type="text/javascript">
+                    aclib.runBanner({ zoneId: '11020770' });
+                </script>
             </div>
 
-            <!-- Banner Ad -->
+            <!-- Adcash 300x100 Banner -->
             <div class="ad-slot ad-banner">
-                <div class="ad-icon">🖼️</div>
-                <div class="ad-type">Banner Ad</div>
-                <div class="ad-label">Ad Space</div>
+                <script type="text/javascript">
+                    aclib.runBanner({ zoneId: '11020778' });
+                </script>
             </div>
         </div>
 
-        <!-- Right Column: single video ad -->
+        <!-- Right Column: VAST Video Ad -->
         <div class="ads-right">
             <div class="ad-slot ad-video">
-                <div class="ad-icon">▶️</div>
-                <div class="ad-type">Video Ad</div>
-                <div class="ad-label">Ad Space</div>
+                <video id="ad-video" class="video-js vjs-default-skin vjs-big-play-centered"
+                       controls preload="auto" data-setup='{}' playsinline>
+                </video>
             </div>
         </div>
 
     </div>
+
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-ima@2.3.0/dist/videojs.ima.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/videojs-ima@2.3.0/dist/videojs.ima.css">
+    <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+
+    <script>
+        // Initialize VAST video ad
+        document.addEventListener('DOMContentLoaded', function() {
+            var player = videojs('ad-video');
+            player.ima({
+                adTagUrl: 'https://youradexchange.com/video/select.php?r=11020766'
+            });
+            player.ima.requestAds();
+        });
+    </script>
 
     <script>
         const TOTAL = 30;
