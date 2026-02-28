@@ -12,7 +12,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
-    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
+
 
     <style>
         * {
@@ -21,7 +21,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             height: 100%;
             overflow: hidden;
             background: var(--bg-dark);
@@ -132,8 +133,15 @@
         }
 
         @keyframes pulseBtn {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.4); }
-            50% { box-shadow: 0 0 20px 4px rgba(255, 45, 85, 0.2); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 20px 4px rgba(255, 45, 85, 0.2);
+            }
         }
 
         .countdown-circle {
@@ -159,7 +167,7 @@
         .ads-grid {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr 2fr;
+            grid-template-columns: 1fr;
             grid-template-rows: 1fr;
             gap: 10px;
             padding: 10px;
@@ -171,12 +179,6 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            min-height: 0;
-        }
-
-        /* Right column: single video ad */
-        .ads-right {
-            display: flex;
             min-height: 0;
         }
 
@@ -211,31 +213,8 @@
             border-color: #4caf50;
         }
 
-        /* video ad - fills entire right column */
-        .ad-video {
-            flex: 1;
-            border-color: #ff2d55;
-        }
-
-        /* Video player fills its container */
-        .ad-video video,
-        .ad-video .video-js {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .ad-video .vjs-poster {
-            background-color: #0c0c14;
-        }
-
         /* ── Responsive ── */
         @media (max-width: 700px) {
-            .ads-grid {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto;
-                overflow-y: auto;
-            }
-
             .promo-header-label {
                 display: none;
             }
@@ -265,10 +244,17 @@
         </button>
     </div>
 
+    <!-- ── Adcash Interstitial Ad ── -->
+    <script type="text/javascript">
+        aclib.runInterstitial({
+            zoneId: '11020798',
+        });
+    </script>
+
     <!-- ── Ads Grid: fills remaining viewport ── -->
     <div class="ads-grid">
 
-        <!-- Left Column: iframe (250x250) + banner (300x100) -->
+        <!-- Banners Column -->
         <div class="ads-left">
             <!-- Adcash 250x250 Banner -->
             <div class="ad-slot ad-iframe">
@@ -285,32 +271,9 @@
             </div>
         </div>
 
-        <!-- Right Column: VAST Video Ad -->
-        <div class="ads-right">
-            <div class="ad-slot ad-video">
-                <video id="ad-video" class="video-js vjs-default-skin vjs-big-play-centered"
-                       controls preload="auto" data-setup='{}' playsinline>
-                </video>
-            </div>
-        </div>
-
     </div>
 
-    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/videojs-ima@2.3.0/dist/videojs.ima.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/videojs-ima@2.3.0/dist/videojs.ima.css">
-    <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
 
-    <script>
-        // Initialize VAST video ad
-        document.addEventListener('DOMContentLoaded', function() {
-            var player = videojs('ad-video');
-            player.ima({
-                adTagUrl: 'https://youradexchange.com/video/select.php?r=11020766'
-            });
-            player.ima.requestAds();
-        });
-    </script>
 
     <script>
         const TOTAL = 30;
@@ -354,19 +317,19 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: token })
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.code) {
-                    window.location.href = '/promo-success.html?code=' + encodeURIComponent(data.code);
-                } else {
-                    alert(data.error || 'Failed to generate code. Please try again.');
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.code) {
+                        window.location.href = '/promo-success.html?code=' + encodeURIComponent(data.code);
+                    } else {
+                        alert(data.error || 'Failed to generate code. Please try again.');
+                        window.location.href = '/free-promo';
+                    }
+                })
+                .catch(() => {
+                    alert('Network error. Please try again.');
                     window.location.href = '/free-promo';
-                }
-            })
-            .catch(() => {
-                alert('Network error. Please try again.');
-                window.location.href = '/free-promo';
-            });
+                });
         }
     </script>
 
