@@ -96,11 +96,20 @@
         <p>Watch a short sponsor ad to immediately receive a 2-hour premium activation code. The code will be displayed
             automatically after you skip the ad.</p>
 
-        <a id="promoBtn" class="watch-btn" href="{{DESTINATION}}">
+        <button id="promoBtn" class="watch-btn" onclick="goToAd()">
             🎬 Watch Ad Now
-        </a>
+        </button>
     </div>
 
+    <script>
+        function goToAd() {
+            var btn = document.getElementById('promoBtn');
+            btn.innerHTML = '<span style="display:inline-block; animation: spin 1s linear infinite;">↻</span> Redirecting...';
+            btn.disabled = true;
+            // The server will replace {{DESTINATION}} with the valid ShrinkEarn Quick Link URL
+            window.location.href = "{{DESTINATION}}";
+        }
+    </script>
 </body>
 
 </html>
