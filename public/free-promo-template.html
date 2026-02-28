@@ -13,103 +13,352 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
+        }
+
         body {
             display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header Bar ── */
+        .promo-header {
+            z-index: 100;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(12, 12, 20, 0.95);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .promo-header-center {
+            flex: 1;
+            display: flex;
             justify-content: center;
-            min-height: 100vh;
-            text-align: center;
+            padding: 0 16px;
         }
 
-        .promo-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 48px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            animation: fadeInUp 0.5s ease;
-        }
-
-        .promo-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 32px;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-        }
-
-        p {
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-            line-height: 1.6;
-        }
-
-        .highlight {
-            color: var(--accent);
-            font-weight: bold;
-        }
-
-        .watch-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+        .progress-bar-bg {
             width: 100%;
-            padding: 16px;
-            font-size: 16px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
-            color: white;
-            text-decoration: none;
+            max-width: 400px;
+            height: 5px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-glow), var(--accent));
+            border-radius: 3px;
+            transition: width 1s linear;
+        }
+
+        .promo-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .promo-header-logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff2d55, #ff6a00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .promo-header-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .skip-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 24px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
             font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: none;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
         }
 
-        .watch-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(255, 45, 85, 0.3);
-        }
-
-        .watch-btn:disabled {
+        .skip-btn.disabled {
             background: var(--border);
             color: var(--text-muted);
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            pointer-events: none;
+        }
+
+        .skip-btn.active {
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            color: white;
+            animation: pulseBtn 1.5s ease-in-out infinite;
+        }
+
+        .skip-btn.active:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 45, 85, 0.4);
+        }
+
+        .skip-btn.loading {
+            background: var(--green-dark);
+            color: white;
+            pointer-events: none;
+        }
+
+        @keyframes pulseBtn {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.4); }
+            50% { box-shadow: 0 0 20px 4px rgba(255, 45, 85, 0.2); }
+        }
+
+        .countdown-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+
+        .countdown-circle.done {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── Ads Grid ── */
+        .ads-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            grid-template-rows: 1fr;
+            gap: 10px;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        /* Left column: iframe (top) + banner (bottom) */
+        .ads-left {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* Right column: single video ad */
+        .ads-right {
+            display: flex;
+            min-height: 0;
+        }
+
+        .ad-slot {
+            background: var(--bg-card);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            gap: 6px;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .ad-slot:hover {
+            border-color: var(--text-muted);
+        }
+
+        /* iframe ad - takes most of left column */
+        .ad-iframe {
+            flex: 2;
+            border-color: #00bcd4;
+        }
+
+        /* banner ad - bottom of left column */
+        .ad-banner {
+            flex: 1;
+            border-color: #4caf50;
+        }
+
+        /* video ad - fills entire right column */
+        .ad-video {
+            flex: 1;
+            border-color: #ff2d55;
+        }
+
+        .ad-slot .ad-icon {
+            font-size: 28px;
+            opacity: 0.5;
+        }
+
+        .ad-slot .ad-type {
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0.7;
+        }
+
+        .ad-slot .ad-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.3;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .ads-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                overflow-y: auto;
+            }
+
+            .promo-header-label {
+                display: none;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <div class="promo-card">
-        <div class="promo-icon">🎁</div>
-        <h1><span class="highlight">2 Free Hours</span> of PRO!</h1>
-        <p>Watch a short sponsor ad to immediately receive a 2-hour premium activation code. The code will be displayed
-            automatically after you skip the ad.</p>
+    <!-- ── Header with Skip Button + Progress ── -->
+    <div class="promo-header">
+        <div class="promo-header-left">
+            <span style="font-size: 20px;">🎮</span>
+            <span class="promo-header-logo">TOOLIX</span>
+            <span class="promo-header-label">— Free PRO Promo</span>
+        </div>
 
-        <button id="promoBtn" class="watch-btn" onclick="goToAd()">
-            🎬 Watch Ad Now
+        <div class="promo-header-center">
+            <div class="progress-bar-bg">
+                <div id="progressFill" class="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <button id="skipBtn" class="skip-btn disabled" onclick="onSkip()" disabled>
+            <div id="countdownCircle" class="countdown-circle">30</div>
+            <span id="skipText">Wait 30s...</span>
         </button>
     </div>
 
+    <!-- ── Ads Grid: fills remaining viewport ── -->
+    <div class="ads-grid">
+
+        <!-- Left Column: iframe + banner -->
+        <div class="ads-left">
+            <!-- Iframe Ad -->
+            <div class="ad-slot ad-iframe">
+                <div class="ad-icon">🌐</div>
+                <div class="ad-type">Iframe Ad</div>
+                <div class="ad-label">Ad Space</div>
+            </div>
+
+            <!-- Banner Ad -->
+            <div class="ad-slot ad-banner">
+                <div class="ad-icon">🖼️</div>
+                <div class="ad-type">Banner Ad</div>
+                <div class="ad-label">Ad Space</div>
+            </div>
+        </div>
+
+        <!-- Right Column: single video ad -->
+        <div class="ads-right">
+            <div class="ad-slot ad-video">
+                <div class="ad-icon">▶️</div>
+                <div class="ad-type">Video Ad</div>
+                <div class="ad-label">Ad Space</div>
+            </div>
+        </div>
+
+    </div>
+
     <script>
-        function goToAd() {
-            var btn = document.getElementById('promoBtn');
-            btn.innerHTML = '<span style="display:inline-block; animation: spin 1s linear infinite;">↻</span> Redirecting...';
-            btn.disabled = true;
-            // The server will replace {{DESTINATION}} with the valid ShrinkEarn Quick Link URL
-            window.location.href = "{{DESTINATION}}";
+        const TOTAL = 30;
+        let remaining = TOTAL;
+        const token = "{{TOKEN}}";
+
+        const skipBtn = document.getElementById('skipBtn');
+        const skipText = document.getElementById('skipText');
+        const circle = document.getElementById('countdownCircle');
+        const progressFill = document.getElementById('progressFill');
+
+        const timer = setInterval(() => {
+            remaining--;
+            circle.textContent = remaining;
+            skipText.textContent = `Wait ${remaining}s...`;
+
+            const pct = Math.round(((TOTAL - remaining) / TOTAL) * 100);
+            progressFill.style.width = pct + '%';
+
+            if (remaining <= 0) {
+                clearInterval(timer);
+                skipBtn.classList.remove('disabled');
+                skipBtn.classList.add('active');
+                skipBtn.disabled = false;
+                circle.textContent = '✓';
+                circle.classList.add('done');
+                skipText.textContent = 'Skip — Get Code!';
+                progressFill.style.width = '100%';
+            }
+        }, 1000);
+
+        function onSkip() {
+            skipBtn.classList.remove('active');
+            skipBtn.classList.add('loading');
+            skipText.textContent = 'Generating...';
+            circle.textContent = '↻';
+            skipBtn.disabled = true;
+
+            fetch('/api/claim-promo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.code) {
+                    window.location.href = '/promo-success.html?code=' + encodeURIComponent(data.code);
+                } else {
+                    alert(data.error || 'Failed to generate code. Please try again.');
+                    window.location.href = '/free-promo';
+                }
+            })
+            .catch(() => {
+                alert('Network error. Please try again.');
+                window.location.href = '/free-promo';
+            });
         }
     </script>
+
 </body>
 
 </html>

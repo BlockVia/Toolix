@@ -197,76 +197,69 @@ app.post('/api/verify-payment', async (req, res) => {
     }
 });
 
-// ── Route: Server-Rendered OTP Link for Free Promo ──
+// ── Route: Free Promo Page (30s countdown + ads) ──
 app.get('/free-promo', (req, res) => {
     try {
         const token = crypto.randomBytes(16).toString('hex');
         const tokens = loadTokens();
 
-        // Token valid for 10 minutes
+        // Token valid for 5 minutes (enough time for 30s countdown + clicking)
         tokens[token] = {
-            expiresAt: Date.now() + 10 * 60 * 1000
+            expiresAt: Date.now() + 5 * 60 * 1000
         };
         saveTokens(tokens);
 
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.get('host');
-        const destination = `${protocol}://${host}/claim-promo/${token}`;
-
-        // Build the ShrinkEarn URL
-        const shrinkEarnApi = '1cf32d7592e81bf1b8e134c0d0734e6f2cb4e2b6';
-        const finalUrl = `https://shrinkearn.com/st?api=${shrinkEarnApi}&url=${encodeURIComponent(destination)}`;
-
-        // Read the HTML template and replace the placeholder
+        // Serve the template with the token embedded
         let html = fs.readFileSync(path.join(__dirname, 'public', 'free-promo-template.html'), 'utf8');
-        html = html.replace('{{DESTINATION}}', finalUrl);
+        html = html.replace('{{TOKEN}}', token);
 
         res.send(html);
     } catch (error) {
-        res.status(500).send('Failed to generate promo link');
+        res.status(500).send('Failed to load promo page');
     }
 });
 
-// ── Route: Claim Free 2-Hour Promo Code ──
-app.get('/claim-promo/:token', (req, res) => {
+// ── Route: Claim Free 2-Hour Promo Code (called from skip button) ──
+app.post('/api/claim-promo', (req, res) => {
     try {
-        const { token } = req.params;
-        const tokens = loadTokens();
-
-        // 1. Check if token exists and is active
-        if (!tokens[token] || Date.now() > tokens[token].expiresAt) {
-            return res.status(400).send(`
-                <html><head><title>Expired Link</title><style>body{background:#0a0a0f;color:#ff2d55;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center}</style></head>
-                <body><div><h1>❌ Invalid or Expired Link</h1><p>Please go back to the app and click "Watch Ad" again.</p></div></body></html>
-            `);
+        const { token } = req.body;
+        if (!token) {
+            return res.status(400).json({ error: 'Missing token' });
         }
 
-        // 2. Token is valid -> DELETE IT IMMEDIATELY (single-use)
+        const tokens = loadTokens();
+
+        // Validate token
+        if (!tokens[token] || Date.now() > tokens[token].expiresAt) {
+            return res.status(400).json({ error: 'Invalid or expired session. Please reload the page.' });
+        }
+
+        // Delete token immediately (single-use)
         delete tokens[token];
         saveTokens(tokens);
 
-        // 3. Generate a 2-hour code
-        const code = generateCode('FRE'); // TOOLIX-FRE-XXXXXX
+        // Generate a 2-hour code
+        const code = generateCode('FRE');
         const codeHash = crypto.createHash('sha256').update(code).digest('hex');
 
-        // 4. Save to generated_codes.json with a flag indicating it can only be used once
+        // Save to generated_codes.json
         const codes = loadCodes();
         codes.push({
             code_hash: codeHash,
             code: code,
             plan: 'free_promo',
             duration_hours: 2,
-            session_id: 'linkvertise_' + Date.now(),
+            session_id: 'promo_' + Date.now(),
             created_at: new Date().toISOString(),
-            single_use: true // Flag for license manager
+            single_use: true
         });
         saveCodes(codes);
 
-        // 5. Redirect to success page to show the code
-        res.redirect(`/promo-success.html?code=${code}`);
+        res.json({ success: true, code: code });
 
     } catch (error) {
-        res.status(500).send('Internal Server Error');
+        console.error('Claim promo error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
