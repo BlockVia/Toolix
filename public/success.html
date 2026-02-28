@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolix — Payment Successful!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .success-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+        }
+
+        .success-card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--green-dark);
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(63, 185, 80, 0.08);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: bounceIn 0.8s ease;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .success-card h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--green);
+            margin-bottom: 8px;
+        }
+
+        .success-card .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .code-box {
+            background: var(--bg-dark);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .code-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .code-value {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 2px;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        .copy-btn {
+            margin-top: 12px;
+            padding: 10px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .plan-info {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 24px 0;
+            padding: 16px;
+            background: rgba(255, 45, 85, 0.06);
+            border-radius: 12px;
+            border: 1px solid var(--border-glow);
+        }
+
+        .plan-info-item {
+            text-align: center;
+        }
+
+        .plan-info-item .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .plan-info-item .value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 4px;
+        }
+
+        .instructions {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 2;
+        }
+
+        .instructions code {
+            background: rgba(255, 45, 85, 0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        .loading-code {
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .loading-code .loading-spinner {
+            margin: 0 auto 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🎮</span>
+                <span class="logo-text">Toolix</span>
+            </a>
+            <a href="/" class="nav-cta">Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="success-page">
+        <div class="success-card" id="successCard">
+            <div class="loading-code" id="loadingState">
+                <div class="loading-spinner"></div>
+                <p>Verifying your payment...</p>
+            </div>
+
+            <div id="codeState" style="display: none;">
+                <div class="success-icon">🎉</div>
+                <h1>Payment Successful!</h1>
+                <p class="subtitle">Your premium activation code is ready</p>
+
+                <div class="code-box">
+                    <div class="code-label">Your Activation Code</div>
+                    <div class="code-value" id="activationCode">—</div>
+                </div>
+                <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+
+                <div class="plan-info">
+                    <div class="plan-info-item">
+                        <div class="label">Plan</div>
+                        <div class="value" id="planName">—</div>
+                    </div>
+                    <div class="plan-info-item">
+                        <div class="label">Duration</div>
+                        <div class="value" id="planDuration">—</div>
+                    </div>
+                </div>
+
+                <div class="instructions">
+                    <h3>📖 How to Activate</h3>
+                    <ol>
+                        <li>Open <strong>Toolix Pro Game AFK Tool</strong></li>
+                        <li>Click the <code>🔑 Activate</code> button in the header</li>
+                        <li>Paste your activation code</li>
+                        <li>Click <code>🔓 Activate Now</code> — Enjoy! 🎮</li>
+                    </ol>
+                </div>
+
+                <a href="/" class="btn btn-secondary" style="margin-top: 12px;">
+                    ← Back to Home
+                </a>
+            </div>
+
+            <div id="errorState" style="display: none;">
+                <div class="success-icon">❌</div>
+                <h1 style="color: var(--red);">Payment Issue</h1>
+                <p class="subtitle" id="errorMessage">Something went wrong. Please try again.</p>
+                <a href="/#pricing" class="btn btn-primary" style="margin-top: 20px;">Try Again</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function verifyPayment() {
+            const params = new URLSearchParams(window.location.search);
+            const sessionId = params.get('session_id');
+            const plan = params.get('plan');
+
+            if (!sessionId) {
+                showError('No payment session found.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, plan })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('codeState').style.display = 'block';
+                    document.getElementById('activationCode').textContent = data.code;
+                    document.getElementById('planName').textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
+                    document.getElementById('planDuration').textContent = data.duration;
+                } else {
+                    showError(data.error || 'Payment verification failed.');
+                }
+            } catch (error) {
+                showError('Connection error. Please refresh the page.');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('activationCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => { btn.textContent = '📋 Copy Code'; }, 2000);
+            });
+        }
+
+        // Start verification when page loads
+        verifyPayment();
+    </script>
+
+</body>
+
+</html>
