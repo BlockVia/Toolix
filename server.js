@@ -263,6 +263,39 @@ app.post('/api/claim-promo', (req, res) => {
     }
 });
 
+// ── Route: Validate Activation Code (called from desktop app) ──
+app.post('/api/validate-code', (req, res) => {
+    try {
+        const { code_hash } = req.body;
+        if (!code_hash) {
+            return res.status(400).json({ valid: false, error: 'Missing code_hash' });
+        }
+
+        // Check in generated codes
+        const codes = loadCodes();
+        const entry = codes.find(c => c.code_hash === code_hash);
+
+        if (entry) {
+            res.json({
+                valid: true,
+                duration_hours: entry.duration_hours || 168,
+                single_use: entry.single_use || false
+            });
+
+            // If single-use, remove it after validation
+            if (entry.single_use) {
+                const filtered = codes.filter(c => c.code_hash !== code_hash);
+                saveCodes(filtered);
+            }
+        } else {
+            res.json({ valid: false });
+        }
+    } catch (error) {
+        console.error('Validate code error:', error.message);
+        res.status(500).json({ valid: false, error: 'Server error' });
+    }
+});
+
 // ── Route: Download Tool ──
 app.get('/api/download', (req, res) => {
     // For now, just redirect or send the file
