@@ -197,8 +197,8 @@ app.post('/api/verify-payment', async (req, res) => {
     }
 });
 
-// ── Route: Generate OTP Link for Free Promo ──
-app.get('/api/get-promo-link', (req, res) => {
+// ── Route: Server-Rendered OTP Link for Free Promo ──
+app.get('/free-promo', (req, res) => {
     try {
         const token = crypto.randomBytes(16).toString('hex');
         const tokens = loadTokens();
@@ -209,9 +209,17 @@ app.get('/api/get-promo-link', (req, res) => {
         };
         saveTokens(tokens);
 
-        res.json({ success: true, token });
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.get('host');
+        const destination = `${protocol}://${host}/claim-promo/${token}`;
+
+        // Read the HTML template and replace the placeholder
+        let html = fs.readFileSync(path.join(__dirname, 'public', 'free-promo-template.html'), 'utf8');
+        html = html.replace('{{DESTINATION}}', destination);
+
+        res.send(html);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to generate promo link' });
+        res.status(500).send('Failed to generate promo link');
     }
 });
 
