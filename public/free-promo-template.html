@@ -167,7 +167,7 @@
         .ads-grid {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 2fr;
             grid-template-rows: 1fr;
             gap: 10px;
             padding: 10px;
@@ -179,6 +179,12 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            min-height: 0;
+        }
+
+        /* Right column: interstitial ad */
+        .ads-right {
+            display: flex;
             min-height: 0;
         }
 
@@ -213,8 +219,20 @@
             border-color: #4caf50;
         }
 
+        /* interstitial ad slot - fills entire right column */
+        .ad-interstitial {
+            flex: 1;
+            border-color: #ff2d55;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 700px) {
+            .ads-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                overflow-y: auto;
+            }
+
             .promo-header-label {
                 display: none;
             }
@@ -244,17 +262,10 @@
         </button>
     </div>
 
-    <!-- ── Adcash Interstitial Ad ── -->
-    <script type="text/javascript">
-        aclib.runInterstitial({
-            zoneId: '11020798',
-        });
-    </script>
-
     <!-- ── Ads Grid: fills remaining viewport ── -->
     <div class="ads-grid">
 
-        <!-- Banners Column -->
+        <!-- Left Column: iframe (250x250) + banner (300x100) -->
         <div class="ads-left">
             <!-- Adcash 250x250 Banner -->
             <div class="ad-slot ad-iframe">
@@ -267,6 +278,17 @@
             <div class="ad-slot ad-banner">
                 <script type="text/javascript">
                     aclib.runBanner({ zoneId: '11020778' });
+                </script>
+            </div>
+        </div>
+
+        <!-- Right Column: Adcash Interstitial Ad -->
+        <div class="ads-right">
+            <div class="ad-slot ad-interstitial">
+                <script type="text/javascript">
+                    aclib.runInterstitial({
+                        zoneId: '11020798',
+                    });
                 </script>
             </div>
         </div>
