@@ -47,7 +47,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // ── MongoDB Connection ──
-mongoose.connect(MONGO_URI)
+mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000 // Fail fast instead of buffering for 10s if connection blocked
+})
     .then(() => console.log('✅ MongoDB connected'))
     .catch(err => console.error('❌ MongoDB error:', err.message));
 
