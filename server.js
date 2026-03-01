@@ -18,7 +18,7 @@ const User = require('./models/User');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'toolix-secret-key-change-in-production-2026';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/toolix';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://asfourmohmed45_db_user:lcTphcrgObU2a8ZG@cluster0.jnefqc2.mongodb.net/toolix?retryWrites=true&w=majority&appName=Cluster0';
 
 // ── Plan Configuration ──
 const PLANS = {
