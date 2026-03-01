@@ -1,22 +1,75 @@
 /**
  * ╔══════════════════════════════════════════════════╗
  * ║       🌐  TOOLIX - Frontend Script              ║
+ * ║       Account System + Stripe Checkout           ║
  * ╚══════════════════════════════════════════════════╝
  */
 
-// ── Stripe Checkout ──
+// ── Auth Helpers ──
+function getToken() {
+    return localStorage.getItem('toolix_token');
+}
+
+function getUser() {
+    try {
+        return JSON.parse(localStorage.getItem('toolix_user'));
+    } catch { return null; }
+}
+
+function isLoggedIn() {
+    return !!getToken();
+}
+
+function logout() {
+    localStorage.removeItem('toolix_token');
+    localStorage.removeItem('toolix_user');
+    window.location.reload();
+}
+
+// ── Update Navbar Based on Auth State ──
+function updateNavbar() {
+    const navCta = document.querySelector('.nav-cta');
+    if (!navCta) return;
+
+    if (isLoggedIn()) {
+        const user = getUser();
+        navCta.textContent = '👤 ' + (user?.username || 'Account');
+        navCta.href = 'account.html';
+    } else {
+        navCta.textContent = 'Login';
+        navCta.href = 'login.html';
+    }
+}
+
+// ── Stripe Checkout (requires login) ──
 async function checkout(plan) {
+    if (!isLoggedIn()) {
+        window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname + '#pricing');
+        return;
+    }
+
     const overlay = document.getElementById('loadingOverlay');
     overlay.classList.add('active');
 
     try {
         const response = await fetch('/api/create-checkout', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + getToken()
+            },
             body: JSON.stringify({ plan })
         });
 
         const data = await response.json();
+
+        if (response.status === 401) {
+            localStorage.removeItem('toolix_token');
+            localStorage.removeItem('toolix_user');
+            overlay.classList.remove('active');
+            window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname + '#pricing');
+            return;
+        }
 
         if (data.url) {
             window.location.href = data.url;
@@ -51,7 +104,6 @@ function createParticles() {
         container.appendChild(particle);
     }
 
-    // Add the float animation
     const style = document.createElement('style');
     style.textContent = `
         @keyframes float {
@@ -86,4 +138,7 @@ window.addEventListener('scroll', () => {
 });
 
 // ── Init ──
-document.addEventListener('DOMContentLoaded', createParticles);
+document.addEventListener('DOMContentLoaded', () => {
+    createParticles();
+    updateNavbar();
+});

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolix — My Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            min-height: 100vh;
+        }
+
+        .account-page {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 100px 24px 60px;
+        }
+
+        .account-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .account-header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .account-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .account-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            padding: 4px 14px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-active {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .status-free {
+            background: rgba(144, 144, 160, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .upgrade-section {
+            text-align: center;
+            padding: 24px;
+            background: rgba(255, 45, 85, 0.04);
+            border: 1px dashed var(--border-glow);
+            border-radius: 16px;
+            margin-top: 12px;
+        }
+
+        .upgrade-section p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 60px 0;
+            color: var(--text-muted);
+        }
+
+        .loading-state .loading-spinner {
+            margin: 0 auto 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🎮</span>
+                <span class="logo-text">Toolix</span>
+            </a>
+            <div class="nav-links">
+                <a href="/#features">Features</a>
+                <a href="/#pricing">Pricing</a>
+                <a href="/#download">Download</a>
+            </div>
+            <button class="logout-btn" style="width:auto; padding: 8px 20px;" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="account-page">
+        <!-- Loading -->
+        <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading account...</p>
+        </div>
+
+        <!-- Account Content -->
+        <div id="accountContent" style="display: none;">
+            <div class="account-header">
+                <h1>👋 Welcome, <span id="displayName">—</span></h1>
+                <p>Manage your Toolix account and subscription</p>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="account-card">
+                <div class="card-title">👤 Profile</div>
+                <div class="info-row">
+                    <span class="info-label">Username</span>
+                    <span class="info-value" id="profileUsername">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span class="info-value" id="profileEmail">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Member Since</span>
+                    <span class="info-value" id="profileCreated">—</span>
+                </div>
+            </div>
+
+            <!-- Subscription Card -->
+            <div class="account-card">
+                <div class="card-title">👑 Subscription</div>
+                <div class="info-row">
+                    <span class="info-label">Status</span>
+                    <span class="status-badge" id="subStatus">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Plan</span>
+                    <span class="info-value" id="subPlan">—</span>
+                </div>
+                <div class="info-row" id="expiresRow" style="display: none;">
+                    <span class="info-label">Expires</span>
+                    <span class="info-value" id="subExpires">—</span>
+                </div>
+
+                <div class="upgrade-section" id="upgradeSection">
+                    <p>🚀 Upgrade to Premium for unlimited features</p>
+                    <a href="/#pricing" class="btn btn-primary btn-glow">⚡ View Plans</a>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="btn-group">
+                <a href="/free-promo" class="btn btn-secondary">🎁 Free 2h PRO</a>
+                <a href="/#download" class="btn btn-secondary">📥 Download App</a>
+            </div>
+
+            <button class="logout-btn" style="margin-top: 20px;" onclick="logout()">🚪 Logout</button>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('toolix_token');
+
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        async function loadAccount() {
+            try {
+                const res = await fetch('/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+
+                if (res.status === 401) {
+                    localStorage.removeItem('toolix_token');
+                    localStorage.removeItem('toolix_user');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const data = await res.json();
+                if (!data.success) throw new Error('Failed');
+
+                const user = data.user;
+                localStorage.setItem('toolix_user', JSON.stringify(user));
+
+                // Fill profile
+                document.getElementById('displayName').textContent = user.username;
+                document.getElementById('profileUsername').textContent = user.username;
+                document.getElementById('profileEmail').textContent = user.email;
+                document.getElementById('profileCreated').textContent = new Date(user.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                // Fill subscription
+                const isPro = user.subscription.active;
+                const statusEl = document.getElementById('subStatus');
+                statusEl.textContent = isPro ? '✅ ACTIVE' : '🔒 FREE';
+                statusEl.className = 'status-badge ' + (isPro ? 'status-active' : 'status-free');
+
+                document.getElementById('subPlan').textContent = isPro
+                    ? user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1)
+                    : 'Free';
+
+                if (isPro && user.subscription.expires_at) {
+                    document.getElementById('expiresRow').style.display = 'flex';
+                    document.getElementById('subExpires').textContent = new Date(user.subscription.expires_at).toLocaleString('en-US', {
+                        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+                    document.getElementById('upgradeSection').style.display = 'none';
+                }
+
+                // Show content
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('accountContent').style.display = 'block';
+
+            } catch (err) {
+                document.getElementById('loadingState').innerHTML = '<p>❌ Failed to load account</p>';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('toolix_token');
+            localStorage.removeItem('toolix_user');
+            window.location.href = '/';
+        }
+
+        loadAccount();
+    </script>
+
+</body>
+
+</html>

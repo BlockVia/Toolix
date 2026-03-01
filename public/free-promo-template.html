@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="style.css">
     <script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
 
-
     <style>
         * {
             margin: 0;
@@ -34,7 +33,6 @@
             flex-direction: column;
         }
 
-        /* ── Header Bar ── */
         .promo-header {
             z-index: 100;
             display: flex;
@@ -163,7 +161,6 @@
             color: var(--accent);
         }
 
-        /* ── Ads Grid ── */
         .ads-grid {
             flex: 1;
             display: grid;
@@ -174,7 +171,6 @@
             overflow: hidden;
         }
 
-        /* Left column: iframe (top) + banner (bottom) */
         .ads-left {
             display: flex;
             flex-direction: column;
@@ -182,7 +178,6 @@
             min-height: 0;
         }
 
-        /* Right column: interstitial ad */
         .ads-right {
             display: flex;
             min-height: 0;
@@ -207,25 +202,65 @@
             border-color: var(--text-muted);
         }
 
-        /* iframe ad - takes most of left column */
         .ad-iframe {
             flex: 2;
             border-color: #00bcd4;
         }
 
-        /* banner ad - bottom of left column */
         .ad-banner {
             flex: 1;
             border-color: #4caf50;
         }
 
-        /* interstitial ad slot - fills entire right column */
         .ad-interstitial {
             flex: 1;
             border-color: #ff2d55;
         }
 
-        /* ── Responsive ── */
+        /* Login required overlay */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(5, 5, 10, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .login-overlay h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            color: var(--text-primary);
+        }
+
+        .login-overlay p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-overlay a {
+            margin-top: 8px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .login-overlay a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 45, 85, 0.3);
+        }
+
         @media (max-width: 700px) {
             .ads-grid {
                 grid-template-columns: 1fr;
@@ -242,7 +277,18 @@
 
 <body>
 
-    <!-- ── Header with Skip Button + Progress ── -->
+    <!-- Login Required Overlay -->
+    <div class="login-overlay" id="loginOverlay" style="display:none;">
+        <div style="font-size:48px;">🔐</div>
+        <h2>Login Required</h2>
+        <p>You need to be logged in to claim your free 2-hour PRO promo. The time will be added directly to your
+            account.</p>
+        <a href="login.html?redirect=/free-promo">🔓 Login to Continue</a>
+        <a href="register.html?redirect=/free-promo"
+            style="background: var(--bg-card); border: 1px solid var(--border);">Create Account</a>
+    </div>
+
+    <!-- Header with Skip Button + Progress -->
     <div class="promo-header">
         <div class="promo-header-left">
             <span style="font-size: 20px;">🎮</span>
@@ -262,19 +308,14 @@
         </button>
     </div>
 
-    <!-- ── Ads Grid: fills remaining viewport ── -->
+    <!-- Ads Grid -->
     <div class="ads-grid">
-
-        <!-- Left Column: iframe (250x250) + banner (300x100) -->
         <div class="ads-left">
-            <!-- Adcash 250x250 Banner -->
             <div class="ad-slot ad-iframe">
                 <script type="text/javascript">
                     aclib.runBanner({ zoneId: '11020770' });
                 </script>
             </div>
-
-            <!-- Adcash 300x100 Banner -->
             <div class="ad-slot ad-banner">
                 <script type="text/javascript">
                     aclib.runBanner({ zoneId: '11020778' });
@@ -282,7 +323,6 @@
             </div>
         </div>
 
-        <!-- Right Column: Adcash Interstitial Ad -->
         <div class="ads-right">
             <div class="ad-slot ad-interstitial">
                 <script async="async" data-cfasync="false"
@@ -290,15 +330,18 @@
                 <div id="container-7daa234d847478bda7bf90b477270dd9"></div>
             </div>
         </div>
-
     </div>
-
-
 
     <script>
         const TOTAL = 30;
         let remaining = TOTAL;
         const token = "{{TOKEN}}";
+        const authToken = localStorage.getItem('toolix_token');
+
+        // Check if user is logged in
+        if (!authToken) {
+            document.getElementById('loginOverlay').style.display = 'flex';
+        }
 
         const skipBtn = document.getElementById('skipBtn');
         const skipText = document.getElementById('skipText');
@@ -320,29 +363,37 @@
                 skipBtn.disabled = false;
                 circle.textContent = '✓';
                 circle.classList.add('done');
-                skipText.textContent = 'Skip — Get Code!';
+                skipText.textContent = 'Skip — Get PRO!';
                 progressFill.style.width = '100%';
             }
         }, 1000);
 
         function onSkip() {
+            if (!authToken) {
+                document.getElementById('loginOverlay').style.display = 'flex';
+                return;
+            }
+
             skipBtn.classList.remove('active');
             skipBtn.classList.add('loading');
-            skipText.textContent = 'Generating...';
+            skipText.textContent = 'Activating...';
             circle.textContent = '↻';
             skipBtn.disabled = true;
 
             fetch('/api/claim-promo', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                },
                 body: JSON.stringify({ token: token })
             })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success && data.code) {
-                        window.location.href = '/promo-success.html?code=' + encodeURIComponent(data.code);
+                    if (data.success) {
+                        window.location.href = '/promo-success.html?expires=' + encodeURIComponent(data.expires_at);
                     } else {
-                        alert(data.error || 'Failed to generate code. Please try again.');
+                        alert(data.error || 'Failed to claim. Please try again.');
                         window.location.href = '/free-promo';
                     }
                 })

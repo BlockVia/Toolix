@@ -1,23 +1,24 @@
 /**
  * ╔══════════════════════════════════════════════════╗
- * ║       🌐  TOOLIX - Subscription Server          ║
- * ║     Stripe Payment + Code Generation            ║
+ * ║       🌐  TOOLIX - Account System Server        ║
+ * ║  MongoDB + JWT Auth + Stripe Payment            ║
  * ╚══════════════════════════════════════════════════╝
  */
 
 const express = require('express');
 const stripe = require('stripe')('sk_test_51T5ZuvAK25n2MDteCEcUB0yIakTkdbhgxcqMxeA4iIlxYyYSJEiKmGV7LMsLJw0q7iRyPNxBVb0dciNI9yCNobiq00HqWGd8GQ');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const User = require('./models/User');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// ── Paths ──
-const CODES_FILE = path.join(__dirname, '..', 'generated_codes.json');
-const TOKENS_FILE = path.join(__dirname, '..', 'active_tokens.json');
-const TOOL_FILE = path.join(__dirname, '..', 'game_tool.py');
+const JWT_SECRET = process.env.JWT_SECRET || 'toolix-secret-key-change-in-production-2026';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/toolix';
 
 // ── Plan Configuration ──
 const PLANS = {
@@ -45,58 +46,180 @@ const PLANS = {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// ── Helper: Load/Save Codes ──
-function loadCodes() {
-    try {
-        if (fs.existsSync(CODES_FILE)) {
-            return JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
-        }
-    } catch (e) { }
-    return [];
+// ── MongoDB Connection ──
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch(err => console.error('❌ MongoDB error:', err.message));
+
+// ── JWT Helper ──
+function generateToken(user) {
+    return jwt.sign(
+        { id: user._id, username: user.username, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+    );
 }
 
-function saveCodes(codes) {
-    fs.writeFileSync(CODES_FILE, JSON.stringify(codes, null, 2), 'utf8');
-}
-
-// ── Helper: Generate Activation Code ──
-function generateCode(planType) {
-    const prefix = planType.toUpperCase().slice(0, 3);
-    const rand = crypto.randomBytes(6).toString('hex').toUpperCase();
-    return `TOOLIX-${prefix}-${rand}`;
-}
-
-// ── Helper: Load/Save Tokens ──
-function loadTokens() {
-    try {
-        if (fs.existsSync(TOKENS_FILE)) {
-            return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'));
-        }
-    } catch (e) { }
-    return {};
-}
-
-function saveTokens(tokens) {
-    fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2), 'utf8');
-}
-
-// ── Helper: Clean Expired Tokens ──
-function cleanTokens() {
-    const tokens = loadTokens();
-    let changed = false;
-    const now = Date.now();
-    for (const [token, data] of Object.entries(tokens)) {
-        if (now > data.expiresAt) {
-            delete tokens[token];
-            changed = true;
-        }
+// ── Auth Middleware ──
+async function authMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required' });
     }
-    if (changed) saveTokens(tokens);
-}
-setInterval(cleanTokens, 5 * 60 * 1000); // Clean every 5 mins
 
-// ── Route: Create Stripe Checkout Session ──
-app.post('/api/create-checkout', async (req, res) => {
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        req.user = user;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+}
+
+// ── Optional Auth (doesn't fail if no token) ──
+async function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.split(' ')[1];
+            const decoded = jwt.verify(token, JWT_SECRET);
+            req.user = await User.findById(decoded.id);
+        } catch { }
+    }
+    next();
+}
+
+// ═══════════════════════════════════════════════
+//  AUTH ROUTES
+// ═══════════════════════════════════════════════
+
+// ── Register ──
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+        if (username.length < 3 || username.length > 20) {
+            return res.status(400).json({ error: 'Username must be 3-20 characters' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Check existing
+        const existingUser = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
+        if (existingUser) {
+            if (existingUser.email === email.toLowerCase()) {
+                return res.status(400).json({ error: 'Email already registered' });
+            }
+            return res.status(400).json({ error: 'Username already taken' });
+        }
+
+        const user = new User({
+            username,
+            email: email.toLowerCase(),
+            password_hash: password  // Will be hashed by pre-save hook
+        });
+        await user.save();
+
+        const token = generateToken(user);
+
+        res.json({
+            success: true,
+            token,
+            user: user.toPublic()
+        });
+    } catch (error) {
+        console.error('Register error:', error.message);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+// ── Login ──
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        const token = generateToken(user);
+
+        res.json({
+            success: true,
+            token,
+            user: user.toPublic()
+        });
+    } catch (error) {
+        console.error('Login error:', error.message);
+        res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// ── Get Current User ──
+app.get('/api/me', authMiddleware, async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            user: req.user.toPublic()
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get user data' });
+    }
+});
+
+// ── Check Subscription (for desktop app) ──
+app.post('/api/check-subscription', authMiddleware, async (req, res) => {
+    try {
+        const user = req.user;
+        const isPremium = user.isPremium();
+
+        // Auto-deactivate expired subscriptions
+        if (user.subscription.active && !isPremium) {
+            user.subscription.active = false;
+            user.subscription.plan = 'free';
+            await user.save();
+        }
+
+        res.json({
+            success: true,
+            is_premium: isPremium,
+            plan: isPremium ? user.subscription.plan : 'free',
+            expires_at: user.subscription.expires_at,
+            username: user.username
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to check subscription' });
+    }
+});
+
+// ═══════════════════════════════════════════════
+//  STRIPE PAYMENT ROUTES
+// ═══════════════════════════════════════════════
+
+// ── Create Checkout Session (requires login) ──
+app.post('/api/create-checkout', authMiddleware, async (req, res) => {
     try {
         const { plan } = req.body;
         const planData = PLANS[plan];
@@ -127,6 +250,7 @@ app.post('/api/create-checkout', async (req, res) => {
             cancel_url: `${baseUrl}/#pricing`,
             metadata: {
                 plan: plan,
+                user_id: req.user._id.toString(),
                 duration_hours: planData.duration_hours.toString()
             }
         });
@@ -138,8 +262,8 @@ app.post('/api/create-checkout', async (req, res) => {
     }
 });
 
-// ── Route: Verify Payment & Generate Code ──
-app.post('/api/verify-payment', async (req, res) => {
+// ── Verify Payment & Activate Subscription ──
+app.post('/api/verify-payment', authMiddleware, async (req, res) => {
     try {
         const { sessionId, plan } = req.body;
 
@@ -155,40 +279,32 @@ app.post('/api/verify-payment', async (req, res) => {
             return res.status(400).json({ error: 'Invalid plan type' });
         }
 
-        // Generate unique activation code
-        const code = generateCode(planType);
-        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-
-        // Save to generated_codes.json
-        const codes = loadCodes();
-
-        // Check if session already redeemed
-        const existing = codes.find(c => c.session_id === sessionId);
-        if (existing) {
-            return res.json({
-                success: true,
-                code: existing.code,
-                plan: planType,
-                duration: planData.label,
-                already_redeemed: true
-            });
+        // Verify the payment belongs to this user
+        if (session.metadata.user_id !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Payment does not belong to this account' });
         }
 
-        codes.push({
-            code_hash: codeHash,
-            code: code,
-            plan: planType,
-            duration_hours: planData.duration_hours,
-            session_id: sessionId,
-            created_at: new Date().toISOString()
-        });
-        saveCodes(codes);
+        const user = req.user;
+
+        // Extend subscription if already active, or start new
+        let expiresAt;
+        if (user.isPremium() && user.subscription.expires_at) {
+            expiresAt = new Date(user.subscription.expires_at.getTime() + planData.duration_hours * 3600000);
+        } else {
+            expiresAt = new Date(Date.now() + planData.duration_hours * 3600000);
+        }
+
+        user.subscription.active = true;
+        user.subscription.plan = planType;
+        user.subscription.expires_at = expiresAt;
+        await user.save();
 
         res.json({
             success: true,
-            code: code,
             plan: planType,
-            duration: planData.label
+            duration: planData.label,
+            expires_at: expiresAt.toISOString(),
+            message: 'Subscription activated successfully!'
         });
 
     } catch (error) {
@@ -197,19 +313,30 @@ app.post('/api/verify-payment', async (req, res) => {
     }
 });
 
-// ── Route: Free Promo Page (30s countdown + ads) ──
+// ═══════════════════════════════════════════════
+//  FREE PROMO ROUTES
+// ═══════════════════════════════════════════════
+
+// Store promo tokens in memory (they expire in 5 min anyway)
+const promoTokens = new Map();
+
+// Clean expired tokens periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, data] of promoTokens) {
+        if (now > data.expiresAt) promoTokens.delete(token);
+    }
+}, 5 * 60 * 1000);
+
+// ── Free Promo Page (30s countdown + ads) ──
 app.get('/free-promo', (req, res) => {
     try {
         const token = crypto.randomBytes(16).toString('hex');
-        const tokens = loadTokens();
 
-        // Token valid for 5 minutes (enough time for 30s countdown + clicking)
-        tokens[token] = {
+        promoTokens.set(token, {
             expiresAt: Date.now() + 5 * 60 * 1000
-        };
-        saveTokens(tokens);
+        });
 
-        // Serve the template with the token embedded
         let html = fs.readFileSync(path.join(__dirname, 'public', 'free-promo-template.html'), 'utf8');
         html = html.replace('{{TOKEN}}', token);
 
@@ -219,43 +346,43 @@ app.get('/free-promo', (req, res) => {
     }
 });
 
-// ── Route: Claim Free 2-Hour Promo Code (called from skip button) ──
-app.post('/api/claim-promo', (req, res) => {
+// ── Claim Free 2-Hour Promo (requires login) ──
+app.post('/api/claim-promo', authMiddleware, async (req, res) => {
     try {
         const { token } = req.body;
         if (!token) {
             return res.status(400).json({ error: 'Missing token' });
         }
 
-        const tokens = loadTokens();
-
-        // Validate token
-        if (!tokens[token] || Date.now() > tokens[token].expiresAt) {
+        // Validate promo token
+        const tokenData = promoTokens.get(token);
+        if (!tokenData || Date.now() > tokenData.expiresAt) {
             return res.status(400).json({ error: 'Invalid or expired session. Please reload the page.' });
         }
 
-        // Delete token immediately (single-use)
-        delete tokens[token];
-        saveTokens(tokens);
+        // Delete token (single-use)
+        promoTokens.delete(token);
 
-        // Generate a 2-hour code
-        const code = generateCode('FRE');
-        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+        const user = req.user;
 
-        // Save to generated_codes.json
-        const codes = loadCodes();
-        codes.push({
-            code_hash: codeHash,
-            code: code,
-            plan: 'free_promo',
-            duration_hours: 2,
-            session_id: 'promo_' + Date.now(),
-            created_at: new Date().toISOString(),
-            single_use: true
+        // Add 2 hours to subscription
+        let expiresAt;
+        if (user.isPremium() && user.subscription.expires_at) {
+            expiresAt = new Date(user.subscription.expires_at.getTime() + 2 * 3600000);
+        } else {
+            expiresAt = new Date(Date.now() + 2 * 3600000);
+        }
+
+        user.subscription.active = true;
+        user.subscription.plan = user.isPremium() ? user.subscription.plan : 'promo';
+        user.subscription.expires_at = expiresAt;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: '2 hours of PRO added to your account!',
+            expires_at: expiresAt.toISOString()
         });
-        saveCodes(codes);
-
-        res.json({ success: true, code: code });
 
     } catch (error) {
         console.error('Claim promo error:', error.message);
@@ -263,50 +390,10 @@ app.post('/api/claim-promo', (req, res) => {
     }
 });
 
-// ── Route: Validate Activation Code (called from desktop app) ──
-app.post('/api/validate-code', (req, res) => {
-    try {
-        const { code_hash } = req.body;
-        if (!code_hash) {
-            return res.status(400).json({ valid: false, error: 'Missing code_hash' });
-        }
+// ═══════════════════════════════════════════════
+//  STATIC ROUTES
+// ═══════════════════════════════════════════════
 
-        // Check in generated codes
-        const codes = loadCodes();
-        const entry = codes.find(c => c.code_hash === code_hash);
-
-        if (entry) {
-            res.json({
-                valid: true,
-                duration_hours: entry.duration_hours || 168,
-                single_use: entry.single_use || false
-            });
-
-            // If single-use, remove it after validation
-            if (entry.single_use) {
-                const filtered = codes.filter(c => c.code_hash !== code_hash);
-                saveCodes(filtered);
-            }
-        } else {
-            res.json({ valid: false });
-        }
-    } catch (error) {
-        console.error('Validate code error:', error.message);
-        res.status(500).json({ valid: false, error: 'Server error' });
-    }
-});
-
-// ── Route: Download Tool ──
-app.get('/api/download', (req, res) => {
-    // For now, just redirect or send the file
-    if (fs.existsSync(TOOL_FILE)) {
-        res.download(TOOL_FILE, 'game_tool.py');
-    } else {
-        res.status(404).json({ error: 'Tool file not found' });
-    }
-});
-
-// ── Route: Success Page ──
 app.get('/success', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'success.html'));
 });
@@ -315,5 +402,5 @@ app.get('/success', (req, res) => {
 app.listen(PORT, () => {
     console.log(`\n🌐  Toolix Server running at http://localhost:${PORT}`);
     console.log(`💳  Stripe: TEST MODE`);
-    console.log(`📁  Codes saved to: ${CODES_FILE}\n`);
+    console.log(`🗄️   MongoDB: ${MONGO_URI}\n`);
 });

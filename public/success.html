@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toolix — Payment Successful!</title>
+    <title>Toolix — Subscription Activated!</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -66,61 +66,15 @@
             margin-bottom: 32px;
         }
 
-        .code-box {
-            background: var(--bg-dark);
-            border: 2px solid var(--accent);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            position: relative;
-        }
-
-        .code-label {
-            font-size: 12px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .code-value {
-            font-family: 'Courier New', monospace;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: 2px;
-            word-break: break-all;
-            user-select: all;
-        }
-
-        .copy-btn {
-            margin-top: 12px;
-            padding: 10px 24px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-family: inherit;
-        }
-
-        .copy-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-        }
-
         .plan-info {
             display: flex;
             justify-content: center;
-            gap: 24px;
+            gap: 32px;
             margin: 24px 0;
-            padding: 16px;
-            background: rgba(255, 45, 85, 0.06);
-            border-radius: 12px;
-            border: 1px solid var(--border-glow);
+            padding: 20px;
+            background: rgba(63, 185, 80, 0.06);
+            border-radius: 16px;
+            border: 1px solid rgba(63, 185, 80, 0.2);
         }
 
         .plan-info-item {
@@ -136,7 +90,7 @@
 
         .plan-info-item .value {
             font-family: 'Outfit', sans-serif;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--text-primary);
             margin-top: 4px;
@@ -186,14 +140,13 @@
 
 <body>
 
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-logo">
                 <span class="logo-icon">🎮</span>
                 <span class="logo-text">Toolix</span>
             </a>
-            <a href="/" class="nav-cta">Back to Home</a>
+            <a href="account.html" class="nav-cta">My Account</a>
         </div>
     </nav>
 
@@ -201,19 +154,13 @@
         <div class="success-card" id="successCard">
             <div class="loading-code" id="loadingState">
                 <div class="loading-spinner"></div>
-                <p>Verifying your payment...</p>
+                <p>Activating your subscription...</p>
             </div>
 
             <div id="codeState" style="display: none;">
                 <div class="success-icon">🎉</div>
-                <h1>Payment Successful!</h1>
-                <p class="subtitle">Your premium activation code is ready</p>
-
-                <div class="code-box">
-                    <div class="code-label">Your Activation Code</div>
-                    <div class="code-value" id="activationCode">—</div>
-                </div>
-                <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+                <h1>Subscription Activated!</h1>
+                <p class="subtitle">Your premium subscription is now active on your account</p>
 
                 <div class="plan-info">
                     <div class="plan-info-item">
@@ -224,26 +171,30 @@
                         <div class="label">Duration</div>
                         <div class="value" id="planDuration">—</div>
                     </div>
+                    <div class="plan-info-item">
+                        <div class="label">Expires</div>
+                        <div class="value" id="planExpires">—</div>
+                    </div>
                 </div>
 
                 <div class="instructions">
-                    <h3>📖 How to Activate</h3>
+                    <h3>📖 Next Steps</h3>
                     <ol>
-                        <li>Open <strong>Toolix Pro Game AFK Tool</strong></li>
-                        <li>Click the <code>🔑 Activate</code> button in the header</li>
-                        <li>Paste your activation code</li>
-                        <li>Click <code>🔓 Activate Now</code> — Enjoy! 🎮</li>
+                        <li>Open <strong>Toolix Desktop App</strong></li>
+                        <li>Login with your account — subscription is automatic!</li>
+                        <li>All premium features are now unlocked 🎮</li>
                     </ol>
                 </div>
 
-                <a href="/" class="btn btn-secondary" style="margin-top: 12px;">
-                    ← Back to Home
-                </a>
+                <div style="display:flex; gap:12px; margin-top:12px; justify-content:center;">
+                    <a href="account.html" class="btn btn-primary">👤 My Account</a>
+                    <a href="/" class="btn btn-secondary">← Back to Home</a>
+                </div>
             </div>
 
             <div id="errorState" style="display: none;">
                 <div class="success-icon">❌</div>
-                <h1 style="color: var(--red);">Payment Issue</h1>
+                <h1 style="color: var(--accent);">Payment Issue</h1>
                 <p class="subtitle" id="errorMessage">Something went wrong. Please try again.</p>
                 <a href="/#pricing" class="btn btn-primary" style="margin-top: 20px;">Try Again</a>
             </div>
@@ -252,6 +203,12 @@
 
     <script>
         async function verifyPayment() {
+            const token = localStorage.getItem('toolix_token');
+            if (!token) {
+                showError('Please login first to activate your subscription.');
+                return;
+            }
+
             const params = new URLSearchParams(window.location.search);
             const sessionId = params.get('session_id');
             const plan = params.get('plan');
@@ -264,7 +221,10 @@
             try {
                 const response = await fetch('/api/verify-payment', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
                     body: JSON.stringify({ sessionId, plan })
                 });
 
@@ -273,9 +233,11 @@
                 if (data.success) {
                     document.getElementById('loadingState').style.display = 'none';
                     document.getElementById('codeState').style.display = 'block';
-                    document.getElementById('activationCode').textContent = data.code;
                     document.getElementById('planName').textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
                     document.getElementById('planDuration').textContent = data.duration;
+                    document.getElementById('planExpires').textContent = new Date(data.expires_at).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric'
+                    });
                 } else {
                     showError(data.error || 'Payment verification failed.');
                 }
@@ -290,16 +252,6 @@
             document.getElementById('errorMessage').textContent = message;
         }
 
-        function copyCode() {
-            const code = document.getElementById('activationCode').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                btn.textContent = '✅ Copied!';
-                setTimeout(() => { btn.textContent = '📋 Copy Code'; }, 2000);
-            });
-        }
-
-        // Start verification when page loads
         verifyPayment();
     </script>
 

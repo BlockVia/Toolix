@@ -1,15 +1,17 @@
 {
     "name": "toolix-website",
-    "version": "1.0.0",
-    "description": "Toolix - Pro Game AFK Tool Subscription Website",
+    "version": "2.0.0",
+    "description": "Toolix - Pro Game AFK Tool with Account System",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
         "dev": "node server.js"
     },
     "dependencies": {
+        "bcryptjs": "^2.4.3",
         "express": "^4.18.2",
-        "stripe": "^14.0.0",
-        "crypto": "^1.0.1"
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.0.0",
+        "stripe": "^14.0.0"
     }
 }
