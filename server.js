@@ -141,7 +141,7 @@ app.post('/api/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Register error:', error.message);
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ error: 'Registration failed: ' + error.message, stack: error.stack });
     }
 });
 
