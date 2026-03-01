@@ -123,8 +123,12 @@ function createParticles() {
 // ── Smooth Scroll ──
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
+        const currentHref = this.getAttribute('href');
+        // If href was dynamically changed (e.g. to login.html), let normal navigation happen
+        if (!currentHref || !currentHref.startsWith('#')) return;
+
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const target = document.querySelector(currentHref);
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
