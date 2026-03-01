@@ -47,12 +47,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // ── MongoDB Connection ──
+console.log('⏳ Connecting to MongoDB...');
 mongoose.connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 5000,
-    family: 4 // Force IPv4 to prevent DNS resolution issues on some hosting environments like Railway
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    family: 4,               // Force IPv4
+    maxPoolSize: 10,
+    connectTimeoutMS: 15000  // Fail fast on initial connection
 })
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => console.error('❌ MongoDB error:', err.message));
+    .then(() => {
+        console.log('✅ MongoDB connected successfully');
+    })
+    .catch(err => {
+        console.error('❌ MongoDB initial connection error:', err.message);
+    });
+
+// Capture unexpected connection drops
+mongoose.connection.on('error', err => {
+    console.error('❌ MongoDB runtime error:', err.message);
+});
+mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️ MongoDB disconnected! Attempting reconnect...');
+});
 
 // ── JWT Helper ──
 function generateToken(user) {
