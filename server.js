@@ -60,7 +60,7 @@ function generateToken(user) {
     );
 }
 
-// ── Auth Middleware ──
+// ── Strict Auth ──
 async function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
