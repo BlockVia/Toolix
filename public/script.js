@@ -41,6 +41,10 @@ function updateNavbar() {
     }
 }
 
+// Call immediately on script load
+document.addEventListener('DOMContentLoaded', updateNavbar);
+
+
 // ── Stripe Checkout (requires login) ──
 async function checkout(plan) {
     if (!isLoggedIn()) {
