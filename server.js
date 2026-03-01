@@ -48,7 +48,8 @@ app.use(express.json());
 
 // ── MongoDB Connection ──
 mongoose.connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 5000 // Fail fast instead of buffering for 10s if connection blocked
+    serverSelectionTimeoutMS: 5000,
+    family: 4 // Force IPv4 to prevent DNS resolution issues on some hosting environments like Railway
 })
     .then(() => console.log('✅ MongoDB connected'))
     .catch(err => console.error('❌ MongoDB error:', err.message));
