@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
     purchased_tools: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Tool'

@@ -45,6 +45,15 @@ const toolSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    is_official: {
+        type: Boolean,
+        default: false
+    },
+    pricing_plan: {
+        type: String,
+        enum: ['free', 'premium', 'one_time'],
+        default: 'free'
+    },
     downloads: {
         type: Number,
         default: 0
@@ -65,6 +74,8 @@ toolSchema.methods.toPublic = function () {
         price: this.price,
         developer_name: this.developer_name,
         page_url: this.page_url,
+        is_official: this.is_official,
+        pricing_plan: this.pricing_plan,
         downloads: this.downloads,
         created_at: this.created_at
     };
