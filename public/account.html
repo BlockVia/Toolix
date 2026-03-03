@@ -231,20 +231,40 @@
             </div>
 
             <!-- Developer Card -->
-            <div class="account-card">
+            <div class="account-card" id="dev-card">
                 <div class="card-title">🛠️ Developer</div>
-                <div class="info-row">
-                    <span class="info-label">Want to build tools for Toolix?</span>
-                    <span class="info-value" style="font-size:12px; color: var(--text-secondary);">Get a developer
-                        license and sell your tools</span>
+
+                <div id="dev-promo-content">
+                    <div class="info-row">
+                        <span class="info-label">Want to build tools for Toolix?</span>
+                        <span class="info-value" style="font-size:12px; color: var(--text-secondary);">Get a developer
+                            license and sell your tools</span>
+                    </div>
+                    <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="mailto:support@toolix.fun?subject=Developer%20License%20Request&body=Hi%20Toolix%20Team%2C%0A%0AI%27d%20like%20to%20request%20a%20developer%20license.%0A%0AMy%20username%3A%20%0ATool%20idea%3A%20%0A%0AThanks!"
+                            class="btn btn-secondary"
+                            style="flex:1; justify-content:center; padding: 12px 16px; font-size: 13px;">📩 Contact Us
+                            to
+                            Develop a Tool</a>
+                    </div>
                 </div>
-                <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <a href="mailto:support@toolix.fun?subject=Developer%20License%20Request&body=Hi%20Toolix%20Team%2C%0A%0AI%27d%20like%20to%20request%20a%20developer%20license.%0A%0AMy%20username%3A%20%0ATool%20idea%3A%20%0A%0AThanks!"
-                        class="btn btn-secondary"
-                        style="flex:1; justify-content:center; padding: 12px 16px; font-size: 13px;">📩 Contact Us to
-                        Develop a Tool</a>
-                    <a href="/marketplace.html" class="btn btn-secondary"
-                        style="flex:1; justify-content:center; padding: 12px 16px; font-size: 13px;">🧰 Browse
+
+                <div id="dev-active-content" style="display: none;">
+                    <div class="info-row">
+                        <span class="info-label">Developer Status</span>
+                        <span class="status-badge status-active">✅ APPROVED</span>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <a href="/developer.html" class="btn btn-primary w-100"
+                            style="justify-content: center; padding: 12px 16px; font-weight: bold;">
+                            👨‍💻 Open Developer Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <a href="/marketplace.html" class="btn btn-secondary w-100"
+                        style="justify-content:center; padding: 12px 16px; font-size: 13px;">🧰 Browse
                         Marketplace</a>
                 </div>
             </div>

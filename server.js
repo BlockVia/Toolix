@@ -12,8 +12,9 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-
 const User = require('./models/User');
+const Tool = require('./models/Tool');
+const WithdrawalRequest = require('./models/WithdrawalRequest');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -413,8 +414,6 @@ app.post('/api/claim-promo', authMiddleware, async (req, res) => {
 //  MARKETPLACE ROUTES
 // ═══════════════════════════════════════════════
 
-const Tool = require('./models/Tool');
-
 // ── List All Approved Tools (public) ──
 app.get('/api/tools', async (req, res) => {
     try {
@@ -447,15 +446,14 @@ app.get('/api/tools/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to load tool' });
     }
 });
-
 // ── Submit New Tool (developer only) ──
-app.post('/api/tools', authMiddleware, async (req, res) => {
+app.post('/api/developer/tools/upload', authMiddleware, async (req, res) => {
     try {
         if (!req.user.is_developer) {
-            return res.status(403).json({ error: 'Developer license required. Contact us to become a developer.' });
+            return res.status(403).json({ error: 'Developer license required.' });
         }
 
-        const { name, description, icon_emoji, category, price, page_url } = req.body;
+        const { name, description, icon_base64, category, price_cents, pricing_plan, page_url } = req.body;
 
         if (!name || !description || !page_url) {
             return res.status(400).json({ error: 'Name, description, and page URL are required' });
@@ -464,25 +462,75 @@ app.post('/api/tools', authMiddleware, async (req, res) => {
         const tool = new Tool({
             name: name.substring(0, 60),
             description: description.substring(0, 300),
-            icon_emoji: icon_emoji || '🧰',
+            icon_emoji: '🧰',
+            icon_base64: icon_base64 || null,
             category: category || 'Utility',
-            price: Math.max(0, parseInt(price) || 0),
+            price: Math.max(0, parseInt(price_cents) || 0),
+            pricing_plan: pricing_plan || 'free',
             developer_id: req.user._id,
             developer_name: req.user.username,
             page_url,
-            approved: false  // requires admin approval
+            approved: false
         });
 
         await tool.save();
 
         res.json({
             success: true,
-            message: 'Tool submitted for review! It will appear in the marketplace once approved.',
+            message: 'Tool submitted for review!',
             tool: tool.toPublic()
         });
     } catch (error) {
         console.error('Submit tool error:', error.message);
         res.status(500).json({ error: 'Failed to submit tool' });
+    }
+});
+
+// ── Withdrawal Request ──
+app.post('/api/developer/withdraw', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) {
+            return res.status(403).json({ error: 'Developer license required.' });
+        }
+
+        const { amount_cents, payment_method, payment_details } = req.body;
+
+        if (!amount_cents || amount_cents < 500) {
+            return res.status(400).json({ error: 'Minimum withdrawal is $5.00' });
+        }
+
+        if (req.user.developer_balance < amount_cents) {
+            return res.status(400).json({ error: 'Insufficient balance' });
+        }
+
+        if (!payment_method || !payment_details) {
+            return res.status(400).json({ error: 'Payment method and details are required' });
+        }
+
+        // Deduct balance instantly
+        req.user.developer_balance -= amount_cents;
+        await req.user.save();
+
+        // Create Withdrawal Record
+        const request = new WithdrawalRequest({
+            developer_id: req.user._id,
+            amount: amount_cents,
+            payment_method,
+            payment_details,
+            status: 'pending'
+        });
+
+        await request.save();
+
+        res.json({
+            success: true,
+            message: 'Withdrawal requested successfully',
+            new_balance: req.user.developer_balance
+        });
+
+    } catch (error) {
+        console.error('Withdraw request error:', error.message);
+        res.status(500).json({ error: 'Failed to request withdrawal. Try again later.' });
     }
 });
 
@@ -504,6 +552,23 @@ app.post('/api/tools/:id/purchase', authMiddleware, async (req, res) => {
         // For paid tools, require premium subscription for now
         if (tool.price > 0 && !user.isPremium()) {
             return res.status(403).json({ error: 'Premium subscription required to install paid tools' });
+        }
+
+        // Calculate platform fee and distribute revenue
+        if (tool.price > 0) {
+            // For now, assume a dummy purchase simulation.
+            // In a real app with Stripe, we'd wait for a webhook. Let's do instant payout simulation.
+
+            // 10% Toolix Platform Fee
+            const fee = Math.floor(tool.price * 0.10);
+            const developerCut = tool.price - fee;
+
+            // Give developer their cut
+            const developer = await User.findById(tool.developer_id);
+            if (developer) {
+                developer.developer_balance += developerCut;
+                await developer.save();
+            }
         }
 
         // Add tool to user's purchased list

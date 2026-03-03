@@ -17,6 +17,10 @@ const toolSchema = new mongoose.Schema({
         type: String,
         default: '🧰'
     },
+    icon_base64: {
+        type: String,
+        default: null
+    },
     category: {
         type: String,
         default: 'Utility',
@@ -70,6 +74,7 @@ toolSchema.methods.toPublic = function () {
         name: this.name,
         description: this.description,
         icon_emoji: this.icon_emoji,
+        icon_base64: this.icon_base64,
         category: this.category,
         price: this.price,
         developer_name: this.developer_name,

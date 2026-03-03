@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Profile - Toolix</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="developer-page">
+
+    <!-- Header / Navbar -->
+    <header class="header">
+        <div class="logo">👑 Toolix</div>
+        <nav class="nav-links">
+            <a href="index.html">🏠 Home</a>
+            <a href="marketplace.html">🧰 Marketplace</a>
+            <a href="account.html" class="active">👤 Account</a>
+        </nav>
+    </header>
+
+    <main class="container">
+
+        <div class="header-section text-center">
+            <h1>👨‍💻 Developer Dashboard</h1>
+            <p>Manage your tools, view earnings, and request payouts.</p>
+        </div>
+
+        <div id="developer-content" style="display: none;">
+
+            <!-- Earnings Dashboard -->
+            <div class="dashboard-grid">
+
+                <!-- Balance Card -->
+                <div class="card balance-card">
+                    <h3>Available Balance</h3>
+                    <div class="balance-amount" id="available-balance">$0.00</div>
+                    <p class="text-muted">Funds ready for withdrawal</p>
+                    <button class="btn btn-primary mt-3 w-100" id="btn-withdraw"
+                        style="padding: 12px; font-weight: bold;">
+                        <i class="fa-solid fa-money-bill-transfer"></i> Request Withdrawal
+                    </button>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="card stats-card">
+                    <h3>Quick Stats</h3>
+                    <ul class="stats-list">
+                        <li>
+                            <span>Platform Fee:</span>
+                            <span class="highlight">10%</span>
+                        </li>
+                        <li>
+                            <span>Total Tools Published:</span>
+                            <span id="stat-tools-count">0</span>
+                        </li>
+                        <li>
+                            <span>Total Sales (Est):</span>
+                            <span id="stat-total-sales">0</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Withdrawal Form Modal / Section (Hidden by default) -->
+            <div id="withdrawal-section" class="card fade-in"
+                style="display: none; margin-top: 30px; border: 1px solid #3e3e5e;">
+                <h3 class="gradient-text"><i class="fa-solid fa-building-columns"></i> Request Payout</h3>
+                <p class="text-muted" style="font-size: 0.9em; margin-bottom: 20px;">Minimum withdrawal amount is $5.00.
+                </p>
+
+                <form id="withdrawal-form" class="form-grid">
+                    <div class="form-group">
+                        <label>Amount to Withdraw (USD)</label>
+                        <input type="number" id="withdraw-amount" min="5" step="0.01" class="form-control"
+                            placeholder="5.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Method</label>
+                        <select id="withdraw-method" class="form-control" required
+                            style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+                            <option value="PayPal">PayPal</option>
+                            <option value="USDT">Crypto (USDT TRC20)</option>
+                            <option value="Bank">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Payment Details (Email, Wallet Address, or IBAN)</label>
+                        <input type="text" id="withdraw-details" class="form-control"
+                            placeholder="e.g. your-email@paypal.com" required>
+                    </div>
+
+                    <div style="grid-column: 1 / -1; margin-top: 10px;">
+                        <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+                        <button type="button" class="btn btn-secondary w-100 mt-2"
+                            id="btn-cancel-withdraw">Cancel</button>
+                    </div>
+                    <div id="withdraw-error" class="error-message" style="display: none; grid-column: 1/-1;"></div>
+                    <div id="withdraw-success" class="success-message" style="display: none; grid-column: 1/-1;"></div>
+                </form>
+            </div>
+
+            <!-- Upload Tool Section -->
+            <div class="card" style="margin-top: 40px; border-top: 4px solid var(--primary-color);">
+                <h2>🚀 Upload New Tool</h2>
+                <p class="text-muted" style="margin-bottom: 25px;">Submit your tool for review. Once approved, it will
+                    appear in the Marketplace.</p>
+
+                <div class="alert alert-info"
+                    style="background: rgba(85, 110, 230, 0.1); border-left: 4px solid #556ee6; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                    <strong>ℹ️ Fee Notice:</strong> Toolix takes a flat <strong>10% platform fee</strong> on all sales.
+                    The remaining 90% is added to your developer balance instantly upon purchase. Free tools do not
+                    incur any fees.
+                </div>
+
+                <form id="upload-tool-form" class="form-grid">
+
+                    <div class="form-group">
+                        <label>Tool Name</label>
+                        <input type="text" id="tool-name" class="form-control" placeholder="e.g. AutoClicker Pro"
+                            maxlength="60" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="tool-category" class="form-control" required
+                            style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+                            <option value="Utility">Utility</option>
+                            <option value="Overlay">Overlay</option>
+                            <option value="Automation">Automation</option>
+                            <option value="Stats">Stats</option>
+                            <option value="Audio">Audio</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Description (Max 300 chars)</label>
+                        <textarea id="tool-desc" class="form-control" rows="3" maxlength="300" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Price (USD)</label>
+                        <input type="number" id="tool-price" class="form-control" placeholder="0.00 for free" min="0"
+                            step="0.01" value="0.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pricing Model</label>
+                        <select id="tool-plan" class="form-control" required
+                            style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+                            <option value="free">Free Forever</option>
+                            <option value="one_time">One-Time Payment</option>
+                        </select>
+                    </div>
+
+                    <!-- Icon Upload -->
+                    <div class="form-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 20px;">
+                        <div>
+                            <label>Tool Icon (128x128 PNG/JPG)</label>
+                            <input type="file" id="tool-icon-file" accept="image/png, image/jpeg" class="form-control"
+                                style="padding: 6px;" required>
+                        </div>
+                        <div id="icon-preview-container"
+                            style="width: 64px; height: 64px; background: #1a1a2e; border: 1px solid #3e3e5e; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <span style="font-size: 24px;">🧰</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Page URL (Where should users go when they click this tool in the Desktop App?)</label>
+                        <input type="url" id="tool-url" class="form-control"
+                            placeholder="https://your-site.com/tool-dashboard" required>
+                    </div>
+
+                    <div style="grid-column: 1 / -1; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary w-100"
+                            style="padding: 15px; font-size: 1.1em; font-weight: bold;">
+                            🚀 Submit Tool for Review
+                        </button>
+                    </div>
+                    <div id="upload-error" class="error-message" style="display: none; grid-column: 1/-1;"></div>
+                    <div id="upload-success" class="success-message" style="display: none; grid-column: 1/-1;"></div>
+
+                </form>
+            </div>
+
+        </div>
+
+        <div id="unauthorized-msg" class="text-center" style="display: none; padding: 50px 0;">
+            <h2 style="color: #ff4444;">Access Denied</h2>
+            <p>You need a Developer Account to view this page.</p>
+            <a href="account.html" class="btn btn-primary mt-3">Return to Account</a>
+        </div>
+
+    </main>
+
+    <footer class="footer mt-5">
+        <p>&copy; 2026 Toolix Marketplace. All Rights Reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Inline script for Developer Page logic
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Verify Developer Status and Load Balance
+            try {
+                const res = await fetch('/api/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.user || !data.user.is_developer) {
+                    document.getElementById('unauthorized-msg').style.display = 'block';
+                    return; // Stop execution
+                }
+
+                // Authorized
+                document.getElementById('developer-content').style.display = 'block';
+
+                // Set balance
+                const balanceUsd = (data.user.developer_balance / 100).toFixed(2);
+                document.getElementById('available-balance').textContent = `$${balanceUsd}`;
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('unauthorized-msg').style.display = 'block';
+            }
+
+            // --- UI Toggles ---
+            const btnWithdraw = document.getElementById('btn-withdraw');
+            const withdrawSection = document.getElementById('withdrawal-section');
+            const btnCancelWithdraw = document.getElementById('btn-cancel-withdraw');
+
+            btnWithdraw.addEventListener('click', () => {
+                withdrawSection.style.display = 'block';
+                btnWithdraw.style.display = 'none';
+            });
+
+            btnCancelWithdraw.addEventListener('click', () => {
+                withdrawSection.style.display = 'none';
+                btnWithdraw.style.display = 'block';
+            });
+
+            // --- Image Preview & Base64 Converter ---
+            let base64Image = null;
+            const fileInput = document.getElementById('tool-icon-file');
+            const previewContainer = document.getElementById('icon-preview-container');
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.size > 500 * 1024) {
+                    alert('Image is too large. Max size 500KB.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    base64Image = event.target.result;
+                    previewContainer.innerHTML = `<img src="${base64Image}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // --- Upload Form Submit ---
+            document.getElementById('upload-tool-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const errDiv = document.getElementById('upload-error');
+                const sucDiv = document.getElementById('upload-success');
+                errDiv.style.display = 'none';
+                sucDiv.style.display = 'none';
+
+                if (!base64Image) {
+                    errDiv.textContent = 'Please select a tool icon image.';
+                    errDiv.style.display = 'block';
+                    return;
+                }
+
+                const payload = {
+                    name: document.getElementById('tool-name').value.trim(),
+                    description: document.getElementById('tool-desc').value.trim(),
+                    category: document.getElementById('tool-category').value,
+                    price_cents: Math.round(parseFloat(document.getElementById('tool-price').value || 0) * 100),
+                    pricing_plan: document.getElementById('tool-plan').value,
+                    icon_base64: base64Image,
+                    page_url: document.getElementById('tool-url').value.trim()
+                };
+
+                try {
+                    const res = await fetch('/api/developer/tools/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+                    sucDiv.textContent = 'Tool submitted successfully! It is now pending admin approval.';
+                    sucDiv.style.display = 'block';
+                    document.getElementById('upload-tool-form').reset();
+                    previewContainer.innerHTML = '<span style="font-size: 24px;">🧰</span>';
+                    base64Image = null;
+
+                } catch (err) {
+                    errDiv.textContent = err.message;
+                    errDiv.style.display = 'block';
+                }
+            });
+
+            // --- Withdrawal Form Submit ---
+            document.getElementById('withdrawal-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const errDiv = document.getElementById('withdraw-error');
+                const sucDiv = document.getElementById('withdraw-success');
+                errDiv.style.display = 'none';
+                sucDiv.style.display = 'none';
+
+                const amount = parseFloat(document.getElementById('withdraw-amount').value);
+                if (amount < 5) {
+                    errDiv.textContent = 'Minimum withdrawal is $5.00';
+                    errDiv.style.display = 'block';
+                    return;
+                }
+
+                const payload = {
+                    amount_cents: Math.round(amount * 100),
+                    payment_method: document.getElementById('withdraw-method').value,
+                    payment_details: document.getElementById('withdraw-details').value.trim()
+                };
+
+                try {
+                    const res = await fetch('/api/developer/withdraw', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Withdrawal failed');
+
+                    sucDiv.textContent = 'Withdrawal request submitted successfully! It is now pending admin fulfillment.';
+                    sucDiv.style.display = 'block';
+
+                    // Update balance
+                    const newBalanceUsd = (data.new_balance / 100).toFixed(2);
+                    document.getElementById('available-balance').textContent = `$${newBalanceUsd}`;
+
+                    document.getElementById('withdrawal-form').reset();
+
+                    setTimeout(() => {
+                        withdrawSection.style.display = 'none';
+                        btnWithdraw.style.display = 'block';
+                        sucDiv.style.display = 'none';
+                    }, 3000);
+
+                } catch (err) {
+                    errDiv.textContent = err.message;
+                    errDiv.style.display = 'block';
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>

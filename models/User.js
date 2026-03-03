@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Tool'
     }],
+    developer_balance: {
+        type: Number,
+        default: 0 // In cents
+    },
     created_at: {
         type: Date,
         default: Date.now
@@ -72,6 +76,7 @@ userSchema.methods.toPublic = function () {
         email: this.email,
         role: this.role,
         is_developer: this.is_developer,
+        developer_balance: this.developer_balance,
         subscription: {
             active: this.isPremium(),
             plan: this.subscription.plan,
