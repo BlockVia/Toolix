@@ -34,7 +34,13 @@ function updateNavbar() {
     if (isLoggedIn()) {
         const user = getUser();
         navCta.textContent = '👤 ' + (user?.username || 'Account');
-        navCta.href = 'account.html';
+
+        // Direct developers to their dashboard instead of standard account page
+        if (user && user.is_developer) {
+            navCta.href = 'developer.html';
+        } else {
+            navCta.href = 'account.html';
+        }
     } else {
         navCta.textContent = 'Login';
         navCta.href = 'login.html';
