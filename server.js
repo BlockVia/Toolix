@@ -410,6 +410,136 @@ app.post('/api/claim-promo', authMiddleware, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════
+//  MARKETPLACE ROUTES
+// ═══════════════════════════════════════════════
+
+const Tool = require('./models/Tool');
+
+// ── List All Approved Tools (public) ──
+app.get('/api/tools', async (req, res) => {
+    try {
+        const { category } = req.query;
+        const filter = { approved: true };
+        if (category && category !== 'All') filter.category = category;
+
+        const tools = await Tool.find(filter)
+            .sort({ downloads: -1, created_at: -1 })
+            .limit(100);
+
+        res.json({
+            success: true,
+            tools: tools.map(t => t.toPublic())
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load tools' });
+    }
+});
+
+// ── Get Single Tool ──
+app.get('/api/tools/:id', async (req, res) => {
+    try {
+        const tool = await Tool.findById(req.params.id);
+        if (!tool || !tool.approved) {
+            return res.status(404).json({ error: 'Tool not found' });
+        }
+        res.json({ success: true, tool: tool.toPublic() });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load tool' });
+    }
+});
+
+// ── Submit New Tool (developer only) ──
+app.post('/api/tools', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) {
+            return res.status(403).json({ error: 'Developer license required. Contact us to become a developer.' });
+        }
+
+        const { name, description, icon_emoji, category, price, page_url } = req.body;
+
+        if (!name || !description || !page_url) {
+            return res.status(400).json({ error: 'Name, description, and page URL are required' });
+        }
+
+        const tool = new Tool({
+            name: name.substring(0, 60),
+            description: description.substring(0, 300),
+            icon_emoji: icon_emoji || '🧰',
+            category: category || 'Utility',
+            price: Math.max(0, parseInt(price) || 0),
+            developer_id: req.user._id,
+            developer_name: req.user.username,
+            page_url,
+            approved: false  // requires admin approval
+        });
+
+        await tool.save();
+
+        res.json({
+            success: true,
+            message: 'Tool submitted for review! It will appear in the marketplace once approved.',
+            tool: tool.toPublic()
+        });
+    } catch (error) {
+        console.error('Submit tool error:', error.message);
+        res.status(500).json({ error: 'Failed to submit tool' });
+    }
+});
+
+// ── Purchase / Install Tool ──
+app.post('/api/tools/:id/purchase', authMiddleware, async (req, res) => {
+    try {
+        const tool = await Tool.findById(req.params.id);
+        if (!tool || !tool.approved) {
+            return res.status(404).json({ error: 'Tool not found' });
+        }
+
+        const user = req.user;
+
+        // Check if already purchased
+        if (user.purchased_tools.includes(tool._id)) {
+            return res.json({ success: true, message: 'Already installed', already_owned: true });
+        }
+
+        // For paid tools, require premium subscription for now
+        if (tool.price > 0 && !user.isPremium()) {
+            return res.status(403).json({ error: 'Premium subscription required to install paid tools' });
+        }
+
+        // Add tool to user's purchased list
+        user.purchased_tools.push(tool._id);
+        await user.save();
+
+        // Increment download count
+        tool.downloads += 1;
+        await tool.save();
+
+        res.json({
+            success: true,
+            message: `${tool.name} installed successfully!`,
+            tool: tool.toPublic()
+        });
+    } catch (error) {
+        console.error('Purchase error:', error.message);
+        res.status(500).json({ error: 'Failed to install tool' });
+    }
+});
+
+// ── Get User's Purchased Tools (for desktop app) ──
+app.get('/api/my-tools', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate('purchased_tools');
+        const tools = (user.purchased_tools || [])
+            .filter(t => t && t.approved)
+            .map(t => t.toPublic());
+
+        res.json({ success: true, tools });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load tools' });
+    }
+});
+
+// ═══════════════════════════════════════════════
 //  STATIC ROUTES
 // ═══════════════════════════════════════════════
 

@@ -26,6 +26,14 @@ const userSchema = new mongoose.Schema({
         plan: { type: String, default: 'free' },
         expires_at: { type: Date, default: null }
     },
+    is_developer: {
+        type: Boolean,
+        default: false
+    },
+    purchased_tools: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tool'
+    }],
     created_at: {
         type: Date,
         default: Date.now
