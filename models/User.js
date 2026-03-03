@@ -70,6 +70,8 @@ userSchema.methods.toPublic = function () {
         id: this._id,
         username: this.username,
         email: this.email,
+        role: this.role,
+        is_developer: this.is_developer,
         subscription: {
             active: this.isPremium(),
             plan: this.subscription.plan,
