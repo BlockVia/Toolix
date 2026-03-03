@@ -27,23 +27,45 @@ function logout() {
 }
 
 // ── Update Navbar Based on Auth State ──
-function updateNavbar() {
-    const navCta = document.querySelector('.nav-cta');
-    if (!navCta) return;
+async function updateNavbar() {
+    const navCtas = document.querySelectorAll('.nav-cta');
+    if (navCtas.length === 0) return;
 
     if (isLoggedIn()) {
-        const user = getUser();
-        navCta.textContent = '👤 ' + (user?.username || 'Account');
+        let user = getUser();
 
-        // Direct developers to their dashboard instead of standard account page
-        if (user && user.is_developer) {
-            navCta.href = 'developer.html';
-        } else {
-            navCta.href = 'account.html';
-        }
+        // Fetch fresh user data just to ensure role/is_developer is accurate
+        try {
+            const res = await fetch('/api/me', {
+                headers: { 'Authorization': 'Bearer ' + getToken() }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                user = data.user;
+                localStorage.setItem('toolix_user', JSON.stringify(user));
+            }
+        } catch (e) { console.warn("Could not fetch fresh user data"); }
+
+        navCtas.forEach(cta => {
+            cta.textContent = '👤 ' + (user?.username || 'Account');
+
+            // Direct developers to their dashboard instead of standard account page
+            if (user && user.is_developer) {
+                cta.href = 'developer.html';
+                cta.target = ''; // Ensure no blank target
+                // Also give visual feedback that it's the dev panel
+                if (cta.classList.contains('btn-primary')) {
+                    cta.innerHTML = '<span>👨‍💻</span> Dev Panel';
+                }
+            } else {
+                cta.href = 'account.html';
+            }
+        });
     } else {
-        navCta.textContent = 'Login';
-        navCta.href = 'login.html';
+        navCtas.forEach(cta => {
+            cta.textContent = 'Login';
+            cta.href = 'login.html';
+        });
     }
 }
 
