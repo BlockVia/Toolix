@@ -20,6 +20,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'toolix-secret-key-change-in-production-2026';
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://asfourmohmed45_db_user:lcTphcrgObU2a8ZG@cluster0.jnefqc2.mongodb.net/toolix?retryWrites=true&w=majority&appName=Cluster0';
+const STRIPE_CONNECT_CLIENT_ID = process.env.STRIPE_CONNECT_CLIENT_ID || '
+ca_U5JqLI4mCl2tQn8V35SGmGBHCjhT9M07';
 
 // ── Plan Configuration ──
 const PLANS = {
@@ -732,8 +734,150 @@ app.get('/api/my-tools', authMiddleware, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════
+//  STRIPE CONNECT ROUTES
+// ═══════════════════════════════════════════════
+
+// ── Start Stripe Connect Onboarding ──
+app.get('/api/stripe/connect/onboard', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.get('host');
+        const baseUrl = `${protocol}://${host}`;
+
+        // Build Stripe OAuth URL
+        const params = new URLSearchParams({
+            response_type: 'code',
+            client_id: STRIPE_CONNECT_CLIENT_ID,
+            scope: 'read_write',
+            redirect_uri: `${baseUrl}/api/stripe/connect/callback`,
+            state: req.user._id.toString()  // We'll use this to identify the user on callback
+        });
+
+        const stripeOAuthUrl = `https://connect.stripe.com/oauth/authorize?${params}`;
+        res.json({ success: true, url: stripeOAuthUrl });
+    } catch (error) {
+        console.error('Stripe Connect onboard error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ── Stripe Connect OAuth Callback ──
+app.get('/api/stripe/connect/callback', async (req, res) => {
+    try {
+        const { code, state, error } = req.query;
+
+        if (error) {
+            return res.redirect('/developer.html?stripe=cancelled');
+        }
+
+        if (!code || !state) {
+            return res.redirect('/developer.html?stripe=error');
+        }
+
+        // Exchange code for access token
+        const response = await stripe.oauth.token({ grant_type: 'authorization_code', code });
+        const stripeAccountId = response.stripe_user_id;
+
+        // Retrieve account details to check verification
+        const account = await stripe.accounts.retrieve(stripeAccountId);
+
+        // Save to user
+        await require('./models/User').findByIdAndUpdate(state, {
+            stripe_account_id: stripeAccountId,
+            stripe_verified: account.charges_enabled && account.payouts_enabled
+        });
+
+        res.redirect('/developer.html?stripe=connected');
+    } catch (error) {
+        console.error('Stripe Connect callback error:', error.message);
+        res.redirect('/developer.html?stripe=error');
+    }
+});
+
+// ── Disconnect Stripe ──
+app.post('/api/stripe/connect/disconnect', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+
+        if (req.user.stripe_account_id) {
+            try {
+                // Deauthorize the Stripe account
+                await stripe.oauth.deauthorize({ client_id: STRIPE_CONNECT_CLIENT_ID, stripe_user_id: req.user.stripe_account_id });
+            } catch (e) {
+                console.warn('Stripe deauthorize warning:', e.message);
+            }
+        }
+
+        req.user.stripe_account_id = null;
+        req.user.stripe_verified = false;
+        await req.user.save();
+
+        res.json({ success: true, message: 'Stripe account disconnected.' });
+    } catch (error) {
+        console.error('Stripe disconnect error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ── Stripe Webhook (handles payment events for automatic payouts) ──
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let event;
+    try {
+        if (WEBHOOK_SECRET) {
+            const sig = req.headers['stripe-signature'];
+            event = stripe.webhooks.constructEvent(req.body, sig, WEBHOOK_SECRET);
+        } else {
+            event = JSON.parse(req.body.toString());
+        }
+    } catch (err) {
+        console.error('Webhook signature error:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle tool purchase payment
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        if (session.metadata && session.metadata.tool_id) {
+            try {
+                const tool = await Tool.findById(session.metadata.tool_id);
+                const developer = await require('./models/User').findById(tool.developer_id);
+
+                if (tool && developer && developer.stripe_account_id && developer.stripe_verified) {
+                    const devCut = Math.floor(tool.price * 0.90);
+                    // Transfer 90% to developer's connected account
+                    await stripe.transfers.create({
+                        amount: devCut,
+                        currency: 'usd',
+                        destination: developer.stripe_account_id,
+                        description: `Sale: ${tool.name}`
+                    });
+                    console.log(`✅ Transferred $${devCut / 100} to developer ${developer.username}`);
+                } else if (tool && developer) {
+                    // Fallback: credit balance manually
+                    developer.developer_balance += Math.floor(tool.price * 0.90);
+                    await developer.save();
+                }
+
+                // Update sales count
+                tool.sales_count = (tool.sales_count || 0) + 1;
+                await tool.save();
+            } catch (e) {
+                console.error('Webhook payout error:', e.message);
+            }
+        }
+    }
+
+    res.json({ received: true });
+});
+
+// ═══════════════════════════════════════════════
 //  STATIC ROUTES
 // ═══════════════════════════════════════════════
+
 
 app.get('/success', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'success.html'));

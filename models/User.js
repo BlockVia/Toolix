@@ -43,6 +43,14 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0 // In cents
     },
+    stripe_account_id: {
+        type: String,
+        default: null   // Stripe Connect Express account ID (acct_...)
+    },
+    stripe_verified: {
+        type: Boolean,
+        default: false
+    },
     created_at: {
         type: Date,
         default: Date.now
@@ -77,6 +85,8 @@ userSchema.methods.toPublic = function () {
         role: this.role,
         is_developer: this.is_developer,
         developer_balance: this.developer_balance,
+        stripe_account_id: this.stripe_account_id,
+        stripe_verified: this.stripe_verified,
         subscription: {
             active: this.isPremium(),
             plan: this.subscription.plan,
