@@ -20,8 +20,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'toolix-secret-key-change-in-production-2026';
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://asfourmohmed45_db_user:lcTphcrgObU2a8ZG@cluster0.jnefqc2.mongodb.net/toolix?retryWrites=true&w=majority&appName=Cluster0';
-const STRIPE_CONNECT_CLIENT_ID = process.env.STRIPE_CONNECT_CLIENT_ID || '
-ca_U5JqLI4mCl2tQn8V35SGmGBHCjhT9M07';
+const STRIPE_CONNECT_CLIENT_ID = process.env.STRIPE_CONNECT_CLIENT_ID || 'ca_U5JqLI4mCl2tQn8V35SGmGBHCjhT9M07';
 
 // ── Plan Configuration ──
 const PLANS = {
