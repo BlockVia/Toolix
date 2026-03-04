@@ -1008,35 +1008,45 @@
                 </section>
 
                 <!-- STRIPE -->
+                <!-- STRIPE -->
                 <section id="sec-stripe" class="section">
                     <div class="ptitle">Stripe Connect</div>
                     <div class="psub">Link your Stripe account to receive automatic payouts.</div>
                     <div class="card" style="max-width:540px;">
-                        <div
+                        <div id="stripe-status-ui"
                             style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:10px;border:1px solid var(--border);margin-bottom:22px;">
-                            <div style="width:10px;height:10px;border-radius:50%;background:#555;flex-shrink:0;"></div>
+                            <div id="stripe-dot"
+                                style="width:10px;height:10px;border-radius:50%;background:#555;flex-shrink:0;"></div>
                             <div>
-                                <div style="font-weight:700;">Not Connected</div>
-                                <p style="font-size:13px;color:var(--text-2);margin-top:2px;">Connect your Stripe
-                                    account to automate payouts.</p>
+                                <div id="stripe-title" style="font-weight:700;">Loading...</div>
+                                <p id="stripe-desc" style="font-size:13px;color:var(--text-2);margin-top:2px;">Checking
+                                    Stripe connection status.</p>
                             </div>
                         </div>
-                        <h3 style="font-size:15px;margin-bottom:10px;font-weight:700;">How it works</h3>
-                        <ol
-                            style="color:var(--text-2);font-size:13.5px;line-height:2.2;padding-left:18px;margin-bottom:20px;">
-                            <li>Click <strong style="color:var(--text)">Connect Stripe Account</strong> below</li>
-                            <li>Create or log in to your Stripe account</li>
-                            <li>90% of every sale is routed directly to your Stripe balance</li>
-                            <li>Toolix retains 10% as a platform fee</li>
-                            <li>Withdraw anytime from your Stripe dashboard</li>
-                        </ol>
-                        <div
-                            style="background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:14px;font-size:13px;color:var(--text-2);margin-bottom:22px;">
-                            <strong style="color:var(--purple);">ℹ️ Coming Soon:</strong> Stripe Connect is currently in
-                            development. Withdrawals are fulfilled manually within 3–5 business days.
+
+                        <div id="stripe-unconnected-ui" style="display:none;">
+                            <h3 style="font-size:15px;margin-bottom:10px;font-weight:700;">How it works</h3>
+                            <ol
+                                style="color:var(--text-2);font-size:13.5px;line-height:2.2;padding-left:18px;margin-bottom:20px;">
+                                <li>Click <strong style="color:var(--text)">Connect Stripe Account</strong> below</li>
+                                <li>Create or log in to your Stripe account</li>
+                                <li>90% of every sale is routed directly to your Stripe balance</li>
+                                <li>Toolix retains 10% as a platform fee</li>
+                                <li>Withdraw anytime from your Stripe dashboard</li>
+                            </ol>
+                            <button id="btn-stripe-connect" class="btn btn-primary btn-lg"><i
+                                    class="fa-brands fa-stripe-s"></i> Connect Stripe Account</button>
                         </div>
-                        <button class="btn btn-primary btn-lg" style="opacity:.5;cursor:not-allowed;"><i
-                                class="fa-brands fa-stripe-s"></i> Connect Stripe Account (Coming Soon)</button>
+
+                        <div id="stripe-connected-ui" style="display:none;">
+                            <div
+                                style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:14px;font-size:13.5px;color:var(--green);margin-bottom:22px;">
+                                <i class="fa fa-check-circle"></i> <strong>You are fully connected!</strong> 90% of all
+                                future sales will be sent directly to your Stripe account.
+                            </div>
+                            <button id="btn-stripe-disconnect" class="btn btn-danger"><i class="fa fa-unlink"></i>
+                                Disconnect</button>
+                        </div>
                     </div>
                 </section>
 
@@ -1140,7 +1150,8 @@
                         <div id="update-form-wrap" style="display:none;margin-top:20px;">
                             <div class="card">
                                 <div style="font-weight:700;font-size:14.5px;margin-bottom:16px;">Submitting update for:
-                                    <span id="u-tool-name" style="color:var(--purple);"></span></div>
+                                    <span id="u-tool-name" style="color:var(--purple);"></span>
+                                </div>
                                 <form style="display:flex;flex-direction:column;gap:14px;" id="update-form">
                                     <div class="fg"><label>New Version Number *</label><input type="text" id="u-version"
                                             placeholder="e.g. 1.2.0" required></div>
@@ -1230,6 +1241,7 @@
                 initIconUpload();
                 initReviewTabs();
                 initUpdateForm();
+                initStripe(user);
                 await loadTools();
                 await loadStats();
                 await loadNotifications();
@@ -1552,6 +1564,80 @@
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fa fa-upload"></i> Submit Update';
                 });
+            }
+
+            // ── Stripe Connect ──
+            function initStripe(user) {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('stripe') === 'connected') {
+                    history.replaceState(null, '', location.pathname);
+                    goTo('stripe');
+                } else if (urlParams.get('stripe') === 'cancelled') {
+                    history.replaceState(null, '', location.pathname);
+                    goTo('stripe');
+                }
+
+                const dot = document.getElementById('stripe-dot');
+                const title = document.getElementById('stripe-title');
+                const desc = document.getElementById('stripe-desc');
+                const btnConnect = document.getElementById('btn-stripe-connect');
+                const btnDisconnect = document.getElementById('btn-stripe-disconnect');
+                const uiUncon = document.getElementById('stripe-unconnected-ui');
+                const uiCon = document.getElementById('stripe-connected-ui');
+
+                if (user.stripe_account_id && user.stripe_verified) {
+                    dot.style.background = 'var(--green)';
+                    dot.style.boxShadow = '0 0 8px var(--green)';
+                    title.textContent = 'Connected & Verified';
+                    title.style.color = 'var(--green)';
+                    desc.textContent = 'Account ID: ' + user.stripe_account_id;
+                    uiUncon.style.display = 'none';
+                    uiCon.style.display = 'block';
+                } else if (user.stripe_account_id) {
+                    dot.style.background = 'var(--yellow)';
+                    title.textContent = 'Verification Pending';
+                    desc.textContent = 'Stripe requires more info. Disconnect and try again.';
+                    uiUncon.style.display = 'none';
+                    uiCon.style.display = 'block';
+                } else {
+                    dot.style.background = '#555';
+                    dot.style.boxShadow = 'none';
+                    title.textContent = 'Not Connected';
+                    title.style.color = 'var(--text)';
+                    desc.textContent = 'Connect your Stripe account to automate payouts.';
+                    uiCon.style.display = 'none';
+                    uiUncon.style.display = 'block';
+                }
+
+                if (btnConnect) {
+                    btnConnect.addEventListener('click', async () => {
+                        btnConnect.disabled = true;
+                        btnConnect.innerHTML = '<i class="fa fa-spinner fa-spin"></i> redirecting...';
+                        try {
+                            const r = await fetch('/api/stripe/connect/onboard', { headers: { Authorization: 'Bearer ' + TOKEN } });
+                            const d = await r.json();
+                            if (d.success) window.location.href = d.url;
+                            else throw new Error(d.error);
+                        } catch (e) {
+                            alert(e.message || 'Failed to start Stripe connection');
+                            btnConnect.disabled = false;
+                            btnConnect.innerHTML = '<i class="fa-brands fa-stripe-s"></i> Connect Stripe Account';
+                        }
+                    });
+                }
+
+                if (btnDisconnect) {
+                    btnDisconnect.addEventListener('click', async () => {
+                        if (!confirm('Are you sure you want to disconnect Stripe? Manual payouts will be required.')) return;
+                        btnDisconnect.disabled = true;
+                        btnDisconnect.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ...';
+                        try {
+                            const r = await fetch('/api/stripe/connect/disconnect', { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN } });
+                            if (r.ok) location.reload();
+                        } catch (e) { alert('Error disconnecting'); }
+                        btnDisconnect.disabled = false;
+                    });
+                }
             }
 
             // ── Charts ──
