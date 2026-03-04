@@ -62,6 +62,34 @@ const toolSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    sales_count: {
+        type: Number,
+        default: 0
+    },
+    version: {
+        type: String,
+        default: '1.0.0'
+    },
+    changelog: {
+        type: String,
+        default: null
+    },
+    rejected: {
+        type: Boolean,
+        default: false
+    },
+    rejection_reason: {
+        type: String,
+        default: null
+    },
+    unlisted: {
+        type: Boolean,
+        default: false
+    },
+    updated_at: {
+        type: Date,
+        default: Date.now
+    },
     created_at: {
         type: Date,
         default: Date.now

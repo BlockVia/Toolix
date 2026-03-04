@@ -446,7 +446,134 @@ app.get('/api/tools/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to load tool' });
     }
 });
+// ── Developer Stats Overview ──
+app.get('/api/developer/stats', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+
+        const devId = req.user._id;
+        const tools = await Tool.find({ developer_id: devId });
+
+        const totalDownloads = tools.reduce((sum, t) => sum + (t.downloads || 0), 0);
+        const totalSales = tools.reduce((sum, t) => sum + (t.sales_count || 0), 0);
+        const approvedCount = tools.filter(t => t.approved && !t.unlisted).length;
+        const pendingCount = tools.filter(t => !t.approved && !t.rejected).length;
+        const rejectedCount = tools.filter(t => t.rejected).length;
+
+        res.json({
+            success: true,
+            stats: {
+                available_balance: req.user.developer_balance,
+                total_downloads: totalDownloads,
+                total_sales: totalSales,
+                tools_approved: approvedCount,
+                tools_pending: pendingCount,
+                tools_rejected: rejectedCount,
+                tools_total: tools.length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load stats' });
+    }
+});
+
+// ── Developer: Get Own Tools ──
+app.get('/api/developer/tools', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+
+        const tools = await Tool.find({ developer_id: req.user._id }).sort({ created_at: -1 });
+        res.json({
+            success: true,
+            tools: tools.map(t => ({
+                id: t._id,
+                name: t.name,
+                description: t.description,
+                icon_base64: t.icon_base64,
+                icon_emoji: t.icon_emoji,
+                category: t.category,
+                price: t.price,
+                pricing_plan: t.pricing_plan,
+                page_url: t.page_url,
+                approved: t.approved,
+                rejected: t.rejected || false,
+                rejection_reason: t.rejection_reason || null,
+                unlisted: t.unlisted || false,
+                downloads: t.downloads || 0,
+                sales_count: t.sales_count || 0,
+                version: t.version || '1.0.0',
+                created_at: t.created_at
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load tools' });
+    }
+});
+
+// ── Developer: Unlist Tool ──
+app.post('/api/developer/tools/:id/unlist', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+        const tool = await Tool.findOne({ _id: req.params.id, developer_id: req.user._id });
+        if (!tool) return res.status(404).json({ error: 'Tool not found' });
+
+        tool.unlisted = !tool.unlisted;
+        await tool.save();
+        res.json({ success: true, unlisted: tool.unlisted });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update tool' });
+    }
+});
+
+// ── Developer: Submit Tool Update (new version) ──
+app.post('/api/developer/tools/:id/update', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+        const tool = await Tool.findOne({ _id: req.params.id, developer_id: req.user._id });
+        if (!tool) return res.status(404).json({ error: 'Tool not found' });
+
+        const { version, changelog, description } = req.body;
+        if (!version || !changelog) return res.status(400).json({ error: 'Version and changelog are required' });
+
+        tool.version = version;
+        tool.changelog = changelog;
+        if (description) tool.description = description.substring(0, 300);
+        tool.approved = false;       // Reset to pending review
+        tool.rejected = false;
+        tool.rejection_reason = null;
+        await tool.save();
+
+        res.json({ success: true, message: 'Update submitted for review!' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to submit update' });
+    }
+});
+
+// ── Developer: Get Notifications ──
+app.get('/api/developer/notifications', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.is_developer) return res.status(403).json({ error: 'Developer license required.' });
+
+        const tools = await Tool.find({ developer_id: req.user._id }).sort({ updated_at: -1 }).limit(20);
+        const notifications = [];
+
+        tools.forEach(t => {
+            if (t.approved && !t.unlisted) {
+                notifications.push({ type: 'approved', message: `"${t.name}" has been approved and is now live!`, time: t.updated_at || t.created_at, tool_id: t._id });
+            }
+            if (t.rejected) {
+                notifications.push({ type: 'rejected', message: `"${t.name}" was rejected. Reason: ${t.rejection_reason || 'See review notes.'}`, time: t.updated_at || t.created_at, tool_id: t._id });
+            }
+        });
+
+        res.json({ success: true, notifications });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load notifications' });
+    }
+});
+
 // ── Submit New Tool (developer only) ──
+
 app.post('/api/developer/tools/upload', authMiddleware, async (req, res) => {
     try {
         if (!req.user.is_developer) {
